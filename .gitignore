@@ -1,0 +1,16 @@
+# Machine-specific SDK location (set sdk.dir=/path/to/android-sdk here instead)
+local.properties
+
+# Build outputs
+build/
+Paisa-debug.apk
+Paisa-debug.apk.idsig
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
