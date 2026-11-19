@@ -17,8 +17,10 @@ function toggleTheme() {
   nativeVibrate(20);
   const isDark = document.documentElement.dataset.theme === 'dark' || document.body.dataset.theme === 'dark';
   state.settings.theme = isDark ? 'light' : 'dark';
+  document.body.classList.add('theme-transition');
   updateTheme();
   saveState();
+  setTimeout(() => document.body.classList.remove('theme-transition'), 250);
 }
 
 function updateTheme() {
@@ -43,6 +45,7 @@ function updateTheme() {
 // ── TAB SWITCHING ──────────────────────────────────────────────
 function switchTab(viewId) {
   nativeVibrate(15);
+  closeBankAccounts(false);
   document.querySelectorAll('.view-page').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -56,6 +59,7 @@ function switchTab(viewId) {
     'viewHome': 'Paisa',
     'viewAnalytics': 'Insights',
     'viewWallets': 'Wallets',
+    'viewLoans': 'Loans',
     'viewSettings': 'Settings'
   };
   document.getElementById('pageTitle').textContent = titleMap[viewId] || 'Paisa';
@@ -76,14 +80,32 @@ window.handleAndroidBack = function() {
     return false;
   }
   // Check dialogs first
+  const picker = document.getElementById('accountPickerDialog');
+  if (picker.classList.contains('show')) {
+    closeAccountPicker();
+    return true;
+  }
   const openDialog = document.querySelector('.md-dialog-backdrop.show');
   if (openDialog) {
-    openDialog.classList.remove('show');
+    if (openDialog.id === 'deleteBankDialog') closeDeleteBankDialog();
+    else if (openDialog.id === 'loanAdjustDialog') closeLoanAdjustDialog();
+    else if (openDialog.id === 'undoConfirmDialog') closeUndoConfirmDialog();
+    else openDialog.classList.remove('show');
     return true;
   }
   const modal = document.getElementById('txModal');
   if (modal && modal.classList.contains('show')) {
     closeModal();
+    return true;
+  }
+  const loanModal = document.getElementById('loanModal');
+  if (loanModal && loanModal.classList.contains('show')) {
+    closeLoanModal();
+    return true;
+  }
+  const loanDetail = document.getElementById('loanDetailModal');
+  if (loanDetail && loanDetail.classList.contains('show')) {
+    closeLoanDetail();
     return true;
   }
   const search = document.getElementById('searchBarWrap');
@@ -94,6 +116,11 @@ window.handleAndroidBack = function() {
   const detail = document.getElementById('txDetailModal');
   if (detail && detail.classList.contains('show')) {
     closeDetailModal();
+    return true;
+  }
+  if (document.getElementById('viewWallets').classList.contains('active') &&
+      document.getElementById('bankAccountsPanel').classList.contains('open')) {
+    closeBankAccounts();
     return true;
   }
   return false; // let Android close app

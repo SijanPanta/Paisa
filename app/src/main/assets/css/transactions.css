@@ -10,6 +10,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
+  will-change: opacity;
   display: flex;
   align-items: flex-end;
 }
@@ -28,6 +29,8 @@
   padding: 12px 20px calc(24px + var(--safe-bottom));
   transform: translateY(100%);
   transition: transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1), background-color 0.22s ease;
+  will-change: transform;
+  backface-visibility: hidden;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
 }
@@ -76,7 +79,7 @@
   border-radius: 12px;
   color: var(--text-sub);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .type-tab.active {
@@ -95,6 +98,48 @@
 
 .type-tab.active.trf {
   color: var(--primary);
+}
+
+/* Loan Direction Switcher */
+.loan-direction-switcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--surface-variant);
+  border-radius: 16px;
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.loan-direction-tab {
+  padding: 11px 0;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 12px;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.loan-direction-tab.active {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.loan-direction-tab.active.pay {
+  color: var(--expense);
+}
+
+.loan-direction-tab.active.receive {
+  color: var(--income);
+}
+
+.loan-direction-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-bottom: 6px;
 }
 
 /* Big Amount Input */
@@ -179,7 +224,7 @@
   border: 1.5px solid transparent;
   cursor: pointer;
   color: var(--text-main);
-  transition: all 0.15s ease;
+  transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .cat-btn-icon {
@@ -219,7 +264,7 @@
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(26,115,232,0.3);
-  transition: all 0.15s ease;
+  transition: transform 0.1s ease, background-color 0.15s ease, box-shadow 0.15s ease;
   margin-top: 10px;
 }
 
@@ -293,12 +338,134 @@
 }
 .detail-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
   margin-top: 6px;
 }
 .detail-actions .primary-btn,
-.detail-actions .delete-btn {
+.detail-actions .delete-btn,
+.detail-actions .undo-btn {
   margin-top: 0;
   box-shadow: none;
+}
+.detail-actions .primary-btn,
+.detail-actions .delete-btn,
+.detail-actions .undo-btn {
+  padding: 12px 4px;
+  font-size: 13px;
+}
+
+.undo-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--surface-variant);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.undo-btn:active {
+  background: var(--primary-container);
+  color: var(--primary-text);
+}
+
+/* The themed chooser replaces Android's unstyled native select popup. */
+.account-select-native {
+  display: none;
+}
+
+.account-picker-trigger,
+.account-picker-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.account-picker-trigger {
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.account-picker-value span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-picker-value .mi {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.account-picker-chevron {
+  color: var(--text-sub);
+  font-size: 20px;
+}
+
+.md-dialog-card.account-picker-card {
+  max-width: 400px;
+  max-height: 85vh;
+  padding: 24px 20px 16px;
+}
+
+.account-picker-options {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.account-picker-group {
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 12px 6px 8px;
+}
+
+.account-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: var(--surface-variant-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 8px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.account-option.selected {
+  background: var(--primary-container);
+  border-color: var(--primary);
+}
+
+.account-option-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.account-option-selected {
+  font-size: 11px;
+  color: var(--primary-text);
+}
+
+.account-option:focus-visible,
+.account-picker-trigger:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }

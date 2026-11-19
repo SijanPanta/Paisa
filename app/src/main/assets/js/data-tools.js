@@ -34,6 +34,7 @@ function handleFileRestore(e) {
         state = {
           transactions: parsed.transactions || [],
           bankAccounts: parsed.bankAccounts || [],
+          loans: parsed.loans || [],
           settings: Object.assign({
             currency: 'Rs.',
             budget: 35000,
@@ -47,6 +48,7 @@ function handleFileRestore(e) {
           selectedType: 'expense',
           selectedCat: 'food'
         };
+        clearUndoHistory();
         saveState();
         document.querySelectorAll('#typeFilterRow .pill-chip').forEach(c => {
           c.classList.toggle('active', c.dataset.filter === 'all');

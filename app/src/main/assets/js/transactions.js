@@ -27,12 +27,18 @@ function renderAccountSelects(selectedAccount, selectedToAccount) {
   const toSelect = document.getElementById('txToAccountSelect');
   const wallets = getAllWallets();
 
-  const currentFrom = selectedAccount || fromSelect.value || 'Cash';
-  let currentTo = selectedToAccount || toSelect.value;
+  const currentFrom = resolveWalletId(selectedAccount || fromSelect.value || 'Cash');
+  let currentTo = resolveWalletId(selectedToAccount || toSelect.value);
   if (!currentTo || currentTo === currentFrom) {
     const alt = wallets.find(w => w.id !== currentFrom);
     currentTo = alt ? alt.id : 'eSewa';
   }
+
+  [currentFrom, currentTo].forEach(id => {
+    if (id && !wallets.some(w => w.id === id)) {
+      wallets.push({ id, name: id, icon: 'account_balance', isBank: true });
+    }
+  });
 
   let optionsHtml = '';
   wallets.forEach(w => {
@@ -47,6 +53,7 @@ function renderAccountSelects(selectedAccount, selectedToAccount) {
 
   toSelect.value = currentTo;
   if (!toSelect.value && wallets.length > 1) toSelect.value = wallets[1].id;
+  updateAccountPickerLabels();
 }
 
 function openAddModalForWallet(walletId) {
@@ -72,7 +79,7 @@ function openAddModal(type = 'expense', initialAccount = null) {
 
   updateModalTypeUI();
   document.getElementById('txModal').classList.add('show');
-  setTimeout(() => document.getElementById('txAmountInput').focus(), 150);
+  setTimeout(() => document.getElementById('txAmountInput').focus(), 80);
 }
 
 function openEditModal(txId) {
@@ -90,10 +97,7 @@ function openEditModal(txId) {
   document.getElementById('txDateInput').value = tx.date;
 
   renderAccountSelects(tx.account || 'Cash', tx.toAccount || 'eSewa');
-  document.getElementById('txAccountSelect').value = tx.account || 'Cash';
-  if (tx.toAccount) {
-    document.getElementById('txToAccountSelect').value = tx.toAccount;
-  }
+
   document.getElementById('deleteTxBtn').style.display = 'block';
 
   updateModalTypeUI();
@@ -198,6 +202,7 @@ function saveTransaction() {
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  recordUndo(state.editingTxId ? 'Edit transaction' : 'Add transaction');
 
   if (state.editingTxId) {
     // Update existing
@@ -249,7 +254,10 @@ function deleteTransaction() {
 
 function executeDeleteTransaction() {
   if (!state.editingTxId) return;
-  state.transactions = state.transactions.filter(t => t.id !== state.editingTxId);
+  const deletedId = state.editingTxId;
+  recordUndo('Delete transaction');
+  unlinkDeletedLoanTransactions([deletedId]);
+  state.transactions = state.transactions.filter(t => t.id !== deletedId);
   saveState();
   closeDeleteTxDialog();
   closeModal();

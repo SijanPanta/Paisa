@@ -18,9 +18,19 @@ DOM, localStorage and optional AndroidBridge doubles.
 Coverage includes:
 
 - Local persistence, default migration, native backup fallback and native/browser helpers.
-- Default wallets, custom bank validation/add/remove, selects, filters and preserved history.
+- Default wallets, nested bank management, combined balances, internal transfers, legacy account aliases,
+  cascading bank/history deletion, themed source/destination selection, cancellation and bank/picker back navigation.
 - Expense/income/transfer creation, detail display, editing/type changes, deletion confirmation,
   invalid amounts, same-wallet transfer rejection, wallet balances and analytics totals.
+- Friend loans: To Pay/To Receive entry on the loans page with a redirect from the main timeline, pending loans held out of Net Balance,
+  approval creating linked income/expense transactions, separate loans balance sheet,
+  loan/wallet balance effects, deletion reversal, backup/restore/reset and back navigation.
+- Individual loan details: per-loan timeline of recorded amounts, approvals, repayments and edits,
+  add/reduce money from the detail sheet or edit sheet, validation, undo, persistence and loan-card click handling.
+- Generic undo history for transaction add/edit/delete/transfer, loan approval/settlement reversal,
+  loan/bank deletion and clear-all, plus header/detail/modal undo controls with a confirmation dialog and cancel path.
+- Timeline history pagination in pages of 20, loan transactions hidden behind a redirect to the loans balance sheet,
+  red expense amounts, and a free-transfer expense category that reduces wallets without counting as spending.
 - CSV export, JSON backup/restore, legacy restore and malformed/cancelled file selections.
 - Biometric supported/unsupported/current-session startup, authentication callbacks,
   settings changes, native lock/resume hooks and touch session refresh.

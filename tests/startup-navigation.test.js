@@ -185,6 +185,7 @@ test('bound controls support search, type switching, detail actions, settings an
   app.element('searchToggleBtn').click();
   app.element('searchInput').value = 'no match';
   app.element('searchInput').dispatchEvent({ type: 'input' });
+  app.flushTimers();
   assert.equal(app.state.searchQuery, 'no match');
   assert.equal(app.element('txListContainer').querySelectorAll('.tx-row').length, 0);
   app.element('searchToggleBtn').click();

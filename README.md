@@ -6,7 +6,8 @@ A simple, offline-first expense tracker for Android, built for the Nepali ecosys
 
 - **Timeline** — transactions grouped by day; tap any transaction for a read-only detail view with Edit / Delete actions
 - **Expense / Income / Transfers** — record spending, income, and money moves between wallets
-- **Wallets** — Cash, eSewa, Khalti, Bank Account, ConnectIPS, Savings, each with a live balance; tap a wallet to filter the timeline
+- **Wallets** — Cash, eSewa, Khalti, Bank Account, ConnectIPS, and Savings, each with a live balance. Bank Account shows the combined bank balance; open it to view individual banks and add/remove them. Bank-to-bank transfers do not inflate the total. Deleting a bank permanently deletes all its income, expense, and transfer transactions, which can also change the balances of wallets on the other side of those transfers.
+- **Account picker** — themed wallet and bank selection for transactions and transfers, matching the app's light/dark appearance
 - **Analytics** — monthly income/expense totals, category breakdown bars, account distribution, savings rate, average daily spend, and budget progress
 - **Budget** — configurable monthly budget with a progress bar
 - **Material 3 UI** — light/dark theme, haptic feedback

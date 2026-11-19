@@ -1,3 +1,5 @@
+let searchDebounceTimer = null;
+
 function initApp() {
   loadState();
   render();
@@ -6,6 +8,7 @@ function initApp() {
   bindTransactionEvents();
   bindSearchEvents();
   bindWalletEvents();
+  bindLoanEvents();
   bindSettingsEvents();
   bindCurrencyEvents();
   bindBudgetEvents();
@@ -21,11 +24,27 @@ function bindNavigationEvents() {
 
   // Theme toggle
   document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+  document.getElementById('undoBtn').addEventListener('click', requestGlobalUndo);
+
+  document.getElementById('cancelUndoConfirmBtn').addEventListener('click', () => {
+    nativeVibrate(15);
+    closeUndoConfirmDialog();
+  });
+  document.getElementById('confirmUndoBtn').addEventListener('click', () => {
+    nativeVibrate(30);
+    confirmUndo();
+  });
 }
 
 function bindTransactionEvents() {
-  // FAB
-  document.getElementById('fabAddBtn').addEventListener('click', () => openAddModal('expense'));
+  // FAB: normal transactions on Timeline, quick loan entry on the balance sheet
+  document.getElementById('fabAddBtn').addEventListener('click', () => {
+    if (document.getElementById('viewLoans').classList.contains('active')) {
+      openLoanModal('pay');
+    } else {
+      openAddModal('expense');
+    }
+  });
 
   // Quick Type Switcher in Modal
   document.querySelectorAll('.type-tab').forEach(el => {
@@ -36,10 +55,16 @@ function bindTransactionEvents() {
     });
   });
 
+  document.getElementById('txAccountPickerBtn').addEventListener('click', () => openAccountPicker('txAccountSelect'));
+  document.getElementById('txToAccountPickerBtn').addEventListener('click', () => openAccountPicker('txToAccountSelect'));
+  document.getElementById('cancelAccountPickerBtn').addEventListener('click', closeAccountPicker);
+
   // Modal buttons
   document.getElementById('closeModalBtn').addEventListener('click', closeModal);
   document.getElementById('saveTxBtn').addEventListener('click', saveTransaction);
   document.getElementById('deleteTxBtn').addEventListener('click', deleteTransaction);
+  document.getElementById('undoTxBtn').addEventListener('click', requestGlobalUndo);
+  document.getElementById('undoTxModalBtn').addEventListener('click', requestGlobalUndo);
 
   // Delete Single Transaction Dialog (Material 3)
   document.getElementById('cancelDeleteTxBtn').addEventListener('click', () => {
@@ -93,12 +118,15 @@ function bindSearchEvents() {
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
     state.searchQuery = e.target.value;
-    renderTransactions();
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(renderTransactions, 120);
   });
 }
 
 function bindWalletEvents() {
-  // Quick Transfer & Add Bank buttons in Wallets tab
+  document.getElementById('closeBankAccountsBtn').addEventListener('click', () => closeBankAccounts());
+  document.getElementById('bankTimelineBtn').addEventListener('click', () => filterByWallet('Bank'));
+  // Bank management lives inside the Bank Account wallet.
   document.getElementById('quickTransferBtn').addEventListener('click', () => openAddModal('transfer'));
   document.getElementById('addBankBtn').addEventListener('click', openAddBankDialog);
   document.getElementById('cancelAddBankBtn').addEventListener('click', () => {
@@ -132,6 +160,74 @@ function bindWalletEvents() {
   document.getElementById('confirmDeleteBankBtn').addEventListener('click', confirmDeleteBank);
 }
 
+function bindLoanEvents() {
+  document.getElementById('loanPageToPayBtn').addEventListener('click', () => openLoanModal('pay'));
+  document.getElementById('loanPageToReceiveBtn').addEventListener('click', () => openLoanModal('receive'));
+  document.getElementById('openLoansBtn').addEventListener('click', () => switchTab('viewLoans'));
+
+  document.querySelectorAll('.loan-direction-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      nativeVibrate(15);
+      setLoanDirection(tab.dataset.direction);
+    });
+  });
+
+  document.getElementById('loanAccountPickerBtn').addEventListener('click', () => openAccountPicker('loanAccountSelect'));
+  document.getElementById('closeLoanModalBtn').addEventListener('click', closeLoanModal);
+  document.getElementById('saveLoanBtn').addEventListener('click', saveLoan);
+  document.getElementById('deleteLoanBtn').addEventListener('click', () => {
+    if (editingLoanId) promptDeleteLoan(editingLoanId);
+  });
+
+  document.getElementById('loanAddMoneyBtn').addEventListener('click', () => {
+    if (editingLoanId) openLoanAdjustDialog('add', editingLoanId);
+  });
+  document.getElementById('loanReduceMoneyBtn').addEventListener('click', () => {
+    if (editingLoanId) openLoanAdjustDialog('reduce', editingLoanId);
+  });
+
+  document.getElementById('closeLoanDetailBtn').addEventListener('click', () => {
+    nativeVibrate(15);
+    closeLoanDetail();
+  });
+  document.getElementById('loanDetailAddBtn').addEventListener('click', () => {
+    if (viewingLoanId) openLoanAdjustDialog('add', viewingLoanId);
+  });
+  document.getElementById('loanDetailReduceBtn').addEventListener('click', () => {
+    if (viewingLoanId) openLoanAdjustDialog('reduce', viewingLoanId);
+  });
+  document.getElementById('editLoanFromDetailBtn').addEventListener('click', () => {
+    if (viewingLoanId) editLoan(viewingLoanId);
+  });
+  document.getElementById('deleteLoanFromDetailBtn').addEventListener('click', () => {
+    if (viewingLoanId) promptDeleteLoan(viewingLoanId);
+  });
+  document.getElementById('toggleLoanApprovalBtn').addEventListener('click', () => {
+    const loan = findLoan(viewingLoanId);
+    if (!loan) return;
+    if (isLoanApproved(loan)) requestLoanApprovalUndo(viewingLoanId);
+    else approveLoan(viewingLoanId);
+  });
+
+  document.getElementById('cancelLoanAdjustBtn').addEventListener('click', () => {
+    nativeVibrate(15);
+    closeLoanAdjustDialog();
+  });
+  document.getElementById('loanAdjustConfirmBtn').addEventListener('click', confirmLoanAdjust);
+
+  document.getElementById('cancelApproveLoanBtn').addEventListener('click', () => {
+    nativeVibrate(15);
+    closeApproveLoanDialog();
+  });
+  document.getElementById('confirmApproveLoanBtn').addEventListener('click', confirmApproveLoan);
+
+  document.getElementById('cancelDeleteLoanBtn').addEventListener('click', () => {
+    nativeVibrate(15);
+    closeDeleteLoanDialog();
+  });
+  document.getElementById('confirmDeleteLoanBtn').addEventListener('click', confirmDeleteLoan);
+}
+
 function bindSettingsEvents() {
   // Reset Data Dialog (Material 3)
   document.getElementById('resetDataBtn').addEventListener('click', openResetDialog);
@@ -141,7 +237,9 @@ function bindSettingsEvents() {
   });
   document.getElementById('confirmResetBtn').addEventListener('click', () => {
     nativeVibrate(35);
+    recordUndo('Clear all data');
     state.transactions = [];
+    state.loans = [];
     saveState();
     closeResetDialog();
     render();
@@ -242,7 +340,11 @@ function bindDialogDismissalEvents() {
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) {
         nativeVibrate(15);
-        backdrop.classList.remove('show');
+        if (backdrop.id === 'accountPickerDialog') closeAccountPicker();
+        else if (backdrop.id === 'deleteBankDialog') closeDeleteBankDialog();
+        else if (backdrop.id === 'loanAdjustDialog') closeLoanAdjustDialog();
+        else if (backdrop.id === 'undoConfirmDialog') closeUndoConfirmDialog();
+        else backdrop.classList.remove('show');
       }
     });
   });
@@ -251,6 +353,20 @@ function bindDialogDismissalEvents() {
   document.getElementById('txModal').addEventListener('click', (e) => {
     if (e.target === document.getElementById('txModal')) {
       closeModal();
+    }
+  });
+
+  // Dismiss loanModal when tapping backdrop
+  document.getElementById('loanModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('loanModal')) {
+      closeLoanModal();
+    }
+  });
+
+  // Dismiss loanDetailModal when tapping backdrop
+  document.getElementById('loanDetailModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('loanDetailModal')) {
+      closeLoanDetail();
     }
   });
 }

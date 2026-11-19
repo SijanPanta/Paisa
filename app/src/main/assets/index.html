@@ -17,8 +17,7 @@
   <div id="biometricLockOverlay" class="lock-overlay" style="display:none;" onclick="if (state.isLocked) triggerBiometricAuth('unlock');">
     <div class="lock-card">
       <div class="lock-logo-wrap">
-        <div class="lock-app-icon"><img src="app_logo.png" alt="Paisa"/></div>
-        <h2 class="lock-app-title">Paisa</h2>
+        <div class="lock-app-icon"><img src="fingerprint_logo.png" alt="Paisa"/></div>
         <p class="lock-app-subtitle">Personal Money Tracker</p>
       </div>
 
@@ -51,6 +50,7 @@
       </div>
     </div>
     <div class="header-actions">
+      <button class="icon-btn" id="undoBtn" title="Nothing to undo" style="display:none;">↩</button>
       <button class="icon-btn" id="searchToggleBtn" title="Search"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M380-320q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l224 224q11 11 11 28t-11 28q-11 11-28 11t-28-11L532-372q-30 24-69 38t-83 14Zm0-80q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg></button>
       <button class="icon-btn" id="themeToggleBtn" title="Toggle Theme"><span id="themeToggleIcon"></span></button>
     </div>
@@ -99,6 +99,11 @@
             <div class="progress-bar-fill" id="budgetProgressBar" style="width: 0%;"></div>
           </div>
         </div>
+
+        <button type="button" class="loan-sheet-link" id="openLoansBtn">
+          <span>Loans balance sheet</span>
+          <span class="loan-sheet-link-end"><span id="loanHeroHint">No pending loans</span> →</span>
+        </button>
       </div>
 
       <!-- Quick Filter Pills -->
@@ -143,18 +148,72 @@
 
     <!-- VIEW 3: WALLETS / ACCOUNTS -->
     <section id="viewWallets" class="view-page">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:8px;">
-        <span style="font-size:13px; font-weight:600; color:var(--text-sub); text-transform:uppercase;">My Wallets</span>
-        <div style="display:flex; gap:8px;">
-          <button class="pill-chip" id="addBankBtn" style="background:var(--surface-variant); color:var(--text-main); font-weight:600;"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M200-320v-200q0-17 11.5-28.5T240-560q17 0 28.5 11.5T280-520v200q0 17-11.5 28.5T240-280q-17 0-28.5-11.5T200-320Zm240 0v-200q0-17 11.5-28.5T480-560q17 0 28.5 11.5T520-520v200q0 17-11.5 28.5T480-280q-17 0-28.5-11.5T440-320ZM120-120q-17 0-28.5-11.5T80-160q0-17 11.5-28.5T120-200h720q17 0 28.5 11.5T880-160q0 17-11.5 28.5T840-120H120Zm560-200v-200q0-17 11.5-28.5T720-560q17 0 28.5 11.5T760-520v200q0 17-11.5 28.5T720-280q-17 0-28.5-11.5T680-320Zm160-320H116q-15 0-25.5-10.5T80-676v-22q0-11 5.5-19t14.5-13l344-172q17-8 36-8t36 8l342 171q11 5 16.5 15t5.5 21v15q0 17-11.5 28.5T840-640Zm-582-80h444-444Zm0 0h444L480-830 258-720Z"/></svg> Add Bank</button>
-          <button class="pill-chip" id="quickTransferBtn" style="background:var(--primary-container); color:var(--primary-text); font-weight:600;"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="m233-320 75 75q11 11 11 27.5T308-189q-12 12-28.5 12T251-189L108-332q-6-6-8.5-13T97-360q0-8 2.5-15t8.5-13l144-144q12-12 28-11.5t28 12.5q11 12 11.5 28T308-475l-75 75h247q17 0 28.5 11.5T520-360q0 17-11.5 28.5T480-320H233Zm494-240H480q-17 0-28.5-11.5T440-600q0-17 11.5-28.5T480-640h247l-75-75q-11-11-11-27.5t11-28.5q12-12 28.5-12t28.5 12l143 143q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L708-428q-12 12-28 11.5T652-429q-11-12-11.5-28t11.5-28l75-75Z"/></svg> Transfer</button>
+      <div id="walletsOverview">
+        <div class="wallet-section-header">
+          <h2 class="wallet-section-title">My Wallets</h2>
+          <button type="button" class="dialog-btn tonal" id="quickTransferBtn">Transfer</button>
         </div>
+        <div id="walletsContainer"></div>
       </div>
 
-      <div id="walletsContainer"></div>
+      <div id="bankAccountsPanel" style="display:none;">
+        <div class="wallet-section-header">
+          <button type="button" class="dialog-btn tonal" id="closeBankAccountsBtn">← Wallets</button>
+          <button type="button" class="dialog-btn primary" id="addBankBtn">+ Add Bank</button>
+        </div>
+        <div class="bank-summary-card">
+          <div class="hero-label">All bank accounts</div>
+          <div class="bank-total-balance" id="bankTotalBalance"></div>
+          <div class="bank-accounts-count" id="bankAccountsCount"></div>
+          <button type="button" class="dialog-btn tonal" id="bankTimelineBtn">View bank transactions</button>
+        </div>
+        <h2 class="wallet-section-title">Your banks</h2>
+        <p class="bank-empty-hint" id="bankAccountsEmpty">Add your banks here to track each balance. Existing unassigned bank transactions stay in General bank balance.</p>
+        <div id="bankAccountsContainer"></div>
+      </div>
     </section>
 
-    <!-- VIEW 4: SETTINGS & BACKUP -->
+    <!-- VIEW 4: FRIEND LOANS BALANCE SHEET -->
+    <section id="viewLoans" class="view-page">
+      <div class="loan-summary-card">
+        <div class="hero-label">Loans Balance Sheet</div>
+        <div class="loan-net-label">Net position</div>
+        <div class="loan-net" id="loanNetVal">Rs. 0</div>
+        <div class="loan-summary-stats">
+          <div class="loan-stat pay">
+            <span>To Pay</span>
+            <strong id="loanPayTotal">Rs. 0</strong>
+          </div>
+          <div class="loan-stat receive">
+            <span>To Receive</span>
+            <strong id="loanReceiveTotal">Rs. 0</strong>
+          </div>
+        </div>
+        <div class="loan-approved-impact" id="loanApprovedImpact">Rs. 0 in Net Balance</div>
+        <p class="loan-summary-hint" id="loanSummaryHint">All loans are approved and included in your Net Balance.</p>
+      </div>
+
+      <div class="loan-action-row">
+        <button type="button" class="loan-quick-btn pay" id="loanPageToPayBtn">↗ To Pay</button>
+        <button type="button" class="loan-quick-btn receive" id="loanPageToReceiveBtn">↙ To Receive</button>
+      </div>
+
+      <div class="loan-section-heading">
+        <h2 class="wallet-section-title">Pending approval</h2>
+        <span id="loanPendingCount">0 pending</span>
+      </div>
+      <div id="loanPendingList"></div>
+
+      <div class="loan-section-heading">
+        <h2 class="wallet-section-title">Approved loans</h2>
+        <span id="loanApprovedCount">0 approved</span>
+      </div>
+      <div id="loanApprovedList"></div>
+
+      <p class="loan-sheet-note">Pending loans stay off your Net Balance. Tap Approve to record them as income or an expense and update all wallet balances.</p>
+    </section>
+
+    <!-- VIEW 5: SETTINGS & BACKUP -->
     <section id="viewSettings" class="view-page">
       <div class="settings-group">
         <div class="settings-item" id="setCurrencyItem">
@@ -250,6 +309,10 @@
       <div class="nav-icon-wrap"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M200-200v-560 560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v100h-80v-100H200v560h560v-100h80v100q0 33-23.5 56.5T760-120H200Zm320-160q-33 0-56.5-23.5T440-360v-240q0-33 23.5-56.5T520-680h280q33 0 56.5 23.5T880-600v240q0 33-23.5 56.5T800-280H520Zm280-80v-240H520v240h280Zm-117.5-77.5Q700-455 700-480t-17.5-42.5Q665-540 640-540t-42.5 17.5Q580-505 580-480t17.5 42.5Q615-420 640-420t42.5-17.5Z"/></svg></div>
       <span class="nav-label">Wallets</span>
     </div>
+    <div class="nav-item" data-target="viewLoans">
+      <div class="nav-icon-wrap"><span id="loanNavBadge" class="loan-nav-badge" style="display:none;">0</span><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M200-200v-560 560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v100h-80v-100H200v560h560v-100h80v100q0 33-23.5 56.5T760-120H200Zm320-160q-33 0-56.5-23.5T440-360v-240q0-33 23.5-56.5T520-680h280q33 0 56.5 23.5T880-600v240q0 33-23.5 56.5T800-280H520Zm280-80v-240H520v240h280Zm-117.5-77.5Q700-455 700-480t-17.5-42.5Q665-540 640-540t-42.5 17.5Q580-505 580-480t17.5 42.5Q615-420 640-420t42.5-17.5Z"/></svg></div>
+      <span class="nav-label">Loans</span>
+    </div>
     <div class="nav-item" data-target="viewSettings">
       <div class="nav-icon-wrap"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M433-80q-27 0-46.5-18T363-142l-9-66q-13-5-24.5-12T307-235l-62 26q-25 11-50 2t-39-32l-47-82q-14-23-8-49t27-43l53-40q-1-7-1-13.5v-27q0-6.5 1-13.5l-53-40q-21-17-27-43t8-49l47-82q14-23 39-32t50 2l62 26q11-8 23-15t24-12l9-66q4-26 23.5-44t46.5-18h94q27 0 46.5 18t23.5 44l9 66q13 5 24.5 12t22.5 15l62-26q25-11 50-2t39 32l47 82q14 23 8 49t-27 43l-53 40q1 7 1 13.5v27q0 6.5-2 13.5l53 40q21 17 27 43t-8 49l-48 82q-14 23-39 32t-50-2l-60-26q-11 8-23 15t-24 12l-9 66q-4 26-23.5 44T527-80h-94Zm7-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/></svg></div>
       <span class="nav-label">Settings</span>
@@ -289,7 +352,7 @@
       <!-- Accounts: From / To -->
       <div class="form-group" id="accountGroup">
         <label class="form-label" id="accountLabel">Account / Wallet</label>
-        <select id="txAccountSelect" class="form-select">
+        <select id="txAccountSelect" class="account-select-native" tabindex="-1" aria-hidden="true">
           <option value="Cash">Cash</option>
           <option value="eSewa">eSewa</option>
           <option value="Khalti">Khalti</option>
@@ -297,12 +360,13 @@
           <option value="ConnectIPS">ConnectIPS</option>
           <option value="Savings">Savings</option>
         </select>
+        <button type="button" id="txAccountPickerBtn" class="form-select account-picker-trigger" aria-haspopup="dialog" aria-controls="accountPickerDialog"></button>
       </div>
 
       <!-- Destination Account (Only for Transfer) -->
       <div class="form-group" id="toAccountGroup" style="display:none;">
         <label class="form-label">To Account</label>
-        <select id="txToAccountSelect" class="form-select">
+        <select id="txToAccountSelect" class="account-select-native" tabindex="-1" aria-hidden="true">
           <option value="Cash">Cash</option>
           <option value="eSewa" selected>eSewa</option>
           <option value="Khalti">Khalti</option>
@@ -310,6 +374,7 @@
           <option value="ConnectIPS">ConnectIPS</option>
           <option value="Savings">Savings</option>
         </select>
+        <button type="button" id="txToAccountPickerBtn" class="form-select account-picker-trigger" aria-haspopup="dialog" aria-controls="accountPickerDialog"></button>
       </div>
 
       <!-- Note / Title -->
@@ -327,6 +392,7 @@
       <!-- Save & Delete Buttons -->
       <button class="primary-btn" id="saveTxBtn">Save Transaction</button>
       <button class="delete-btn" id="deleteTxBtn" style="display:none;">Delete Transaction</button>
+      <button class="undo-btn" id="undoTxModalBtn">↩ Undo last action</button>
     </div>
   </div>
 
@@ -342,6 +408,146 @@
       <div class="detail-actions">
         <button class="primary-btn" id="editTxFromDetailBtn">✏️ Edit</button>
         <button class="delete-btn" id="deleteTxFromDetailBtn">Delete</button>
+        <button class="undo-btn" id="undoTxBtn">↩ Undo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT FRIEND LOAN BOTTOM SHEET -->
+  <div class="modal-backdrop" id="loanModal">
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title" id="loanSheetTitle">New Friend Loan</h3>
+        <button class="icon-btn" id="closeLoanModalBtn" style="width:32px; height:32px;">✕</button>
+      </div>
+
+      <div class="loan-direction-switcher" id="loanDirectionSwitcher">
+        <div class="loan-direction-tab pay active" data-direction="pay">To Pay</div>
+        <div class="loan-direction-tab receive" data-direction="receive">To Receive</div>
+      </div>
+      <p class="loan-direction-hint" id="loanDirectionHint">You borrowed money. Approving this loan will deduct it from Net Balance.</p>
+
+      <div class="amount-input-wrap">
+        <span class="currency-symbol-label" id="loanCurrencySymbol">Rs.</span>
+        <input type="number" id="loanAmountInput" class="amount-input" placeholder="0" inputmode="decimal" />
+      </div>
+
+      <div class="loan-adjust-row">
+        <button type="button" class="loan-adjust-btn add" id="loanAddMoneyBtn" style="display:none;">+ Add Money</button>
+        <button type="button" class="loan-adjust-btn reduce" id="loanReduceMoneyBtn" style="display:none;">− Reduce Money</button>
+      </div>
+      <p class="loan-adjust-hint" id="loanAdjustHint">Save this loan first to record repayments in its timeline.</p>
+
+      <div class="form-group">
+        <label class="form-label">Friend's Name</label>
+        <input type="text" id="loanPersonInput" class="form-input" placeholder="e.g. Ram, Sita, Anil..." maxlength="60" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Account / Wallet</label>
+        <select id="loanAccountSelect" class="account-select-native" tabindex="-1" aria-hidden="true">
+          <option value="Cash">Cash</option>
+        </select>
+        <button type="button" id="loanAccountPickerBtn" class="form-select account-picker-trigger" aria-haspopup="dialog" aria-controls="accountPickerDialog"></button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Note / Description</label>
+        <input type="text" id="loanNoteInput" class="form-input" placeholder="e.g. Dinner, bus tickets, emergency..." />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" id="loanDateInput" class="form-input" />
+      </div>
+
+      <button class="primary-btn" id="saveLoanBtn">Save To Pay</button>
+      <button class="delete-btn" id="deleteLoanBtn" style="display:none;">Delete Loan</button>
+    </div>
+  </div>
+
+  <!-- INDIVIDUAL LOAN DETAIL + TIMELINE BOTTOM SHEET -->
+  <div class="modal-backdrop" id="loanDetailModal">
+    <div class="bottom-sheet loan-detail-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Loan Details & Timeline</h3>
+        <button class="icon-btn" id="closeLoanDetailBtn" style="width:32px; height:32px;">✕</button>
+      </div>
+      <div id="loanDetailBody"></div>
+      <div class="loan-detail-actions">
+        <button type="button" class="loan-adjust-btn add" id="loanDetailAddBtn">+ Add Money</button>
+        <button type="button" class="loan-adjust-btn reduce" id="loanDetailReduceBtn">− Reduce Money</button>
+      </div>
+      <div class="detail-actions">
+        <button class="primary-btn" id="editLoanFromDetailBtn">✏️ Edit</button>
+        <button class="undo-btn" id="toggleLoanApprovalBtn">Approve</button>
+        <button class="delete-btn" id="deleteLoanFromDetailBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD / REDUCE LOAN MONEY DIALOG (MATERIAL 3) -->
+  <div class="md-dialog-backdrop" id="loanAdjustDialog">
+    <div class="md-dialog-card">
+      <div class="dialog-icon-badge primary" id="loanAdjustIcon">+</div>
+      <div class="dialog-title" id="loanAdjustTitle">Add money</div>
+      <div class="dialog-desc" id="loanAdjustDesc">Record this movement in the loan timeline.</div>
+      <div class="form-group">
+        <label class="form-label">Amount</label>
+        <input type="number" id="loanAdjustAmountInput" class="form-input" placeholder="0" inputmode="decimal" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note (optional)</label>
+        <input type="text" id="loanAdjustNoteInput" class="form-input" placeholder="e.g. Partial repayment" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" id="loanAdjustDateInput" class="form-input" />
+      </div>
+      <div class="dialog-actions">
+        <button class="dialog-btn tonal" id="cancelLoanAdjustBtn">Cancel</button>
+        <button class="dialog-btn primary" id="loanAdjustConfirmBtn">Add money</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPROVE LOAN CONFIRMATION DIALOG (MATERIAL 3) -->
+  <div class="md-dialog-backdrop" id="approveLoanDialog">
+    <div class="md-dialog-card">
+      <div class="dialog-icon-badge primary">✓</div>
+      <div class="dialog-title">Approve this loan?</div>
+      <div class="dialog-desc" id="approveLoanDesc">This will record the loan in your transactions and change your Net Balance.</div>
+      <div class="dialog-actions">
+        <button class="dialog-btn tonal" id="cancelApproveLoanBtn">Cancel</button>
+        <button class="dialog-btn primary" id="confirmApproveLoanBtn">Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE LOAN CONFIRMATION DIALOG (MATERIAL 3) -->
+  <div class="md-dialog-backdrop" id="deleteLoanDialog">
+    <div class="md-dialog-card">
+      <div class="dialog-icon-badge danger">✕</div>
+      <div class="dialog-title">Delete loan?</div>
+      <div class="dialog-desc" id="deleteLoanDesc">This removes the loan from your balance sheet.</div>
+      <div class="dialog-actions">
+        <button class="dialog-btn tonal" id="cancelDeleteLoanBtn">Cancel</button>
+        <button class="dialog-btn danger" id="confirmDeleteLoanBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UNDO CONFIRMATION DIALOG (MATERIAL 3) -->
+  <div class="md-dialog-backdrop" id="undoConfirmDialog">
+    <div class="md-dialog-card">
+      <div class="dialog-icon-badge primary">↩</div>
+      <div class="dialog-title">Undo this action?</div>
+      <div class="dialog-desc" id="undoConfirmDesc">Your previous transactions, loans and bank accounts will be restored.</div>
+      <div class="dialog-actions">
+        <button class="dialog-btn tonal" id="cancelUndoConfirmBtn">Cancel</button>
+        <button class="dialog-btn primary" id="confirmUndoBtn">Undo</button>
       </div>
     </div>
   </div>
@@ -426,6 +632,17 @@
     </div>
   </div>
 
+  <div class="md-dialog-backdrop" id="accountPickerDialog">
+    <div class="md-dialog-card account-picker-card" role="dialog" aria-modal="true" aria-labelledby="accountPickerTitle">
+      <h2 class="dialog-title" id="accountPickerTitle">Account / Wallet</h2>
+      <p class="dialog-desc">Choose the wallet for this transaction.</p>
+      <div class="account-picker-options" id="accountPickerOptions"></div>
+      <div class="dialog-actions">
+        <button type="button" class="dialog-btn tonal" id="cancelAccountPickerBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ADD BANK ACCOUNT DIALOG (MATERIAL 3) -->
   <div class="md-dialog-backdrop" id="addBankDialog">
     <div class="md-dialog-card">
@@ -456,22 +673,26 @@
   <div class="md-dialog-backdrop" id="deleteBankDialog">
     <div class="md-dialog-card">
       <div class="dialog-icon-badge danger"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M280-120q-33 0-56.5-23.5T200-200v-520q-17 0-28.5-11.5T160-760q0-17 11.5-28.5T200-800h160q0-17 11.5-28.5T400-840h160q17 0 28.5 11.5T600-800h160q17 0 28.5 11.5T800-760q0 17-11.5 28.5T760-720v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM428.5-291.5Q440-303 440-320v-280q0-17-11.5-28.5T400-640q-17 0-28.5 11.5T360-600v280q0 17 11.5 28.5T400-280q17 0 28.5-11.5Zm160 0Q600-303 600-320v-280q0-17-11.5-28.5T560-640q-17 0-28.5 11.5T520-600v280q0 17 11.5 28.5T560-280q17 0 28.5-11.5ZM280-720v520-520Z"/></svg></div>
-      <div class="dialog-title">Remove Bank Wallet?</div>
-      <div class="dialog-desc" id="deleteBankDesc">Are you sure you want to remove this bank wallet? Existing transactions will be preserved.</div>
+      <div class="dialog-title">Delete Bank &amp; History?</div>
+      <div class="dialog-desc" id="deleteBankDesc">Deleting this bank permanently deletes its income, expenses and transfers. Other wallet balances may change. This cannot be undone.</div>
       <div class="dialog-actions">
         <button class="dialog-btn tonal" id="cancelDeleteBankBtn">Cancel</button>
-        <button class="dialog-btn danger" id="confirmDeleteBankBtn">Remove</button>
+        <button class="dialog-btn danger" id="confirmDeleteBankBtn">Delete</button>
       </div>
     </div>
   </div>
 
   <script src="js/state.js"></script>
+  <script src="js/undo.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/native.js"></script>
   <script src="js/biometric.js"></script>
   <script src="js/formatters.js"></script>
   <script src="js/views.js"></script>
+  <script src="js/wallets.js"></script>
   <script src="js/transactions.js"></script>
+  <script src="js/account-picker.js"></script>
+  <script src="js/loans.js"></script>
   <script src="js/dialogs.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/data-tools.js"></script>

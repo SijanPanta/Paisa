@@ -51,7 +51,7 @@ function openAddBankDialog() {
   input.value = '';
   document.querySelectorAll('#bankPresets .preset-chip').forEach(c => c.classList.remove('active'));
   document.getElementById('addBankDialog').classList.add('show');
-  setTimeout(() => input.focus(), 150);
+  setTimeout(() => input.focus(), 80);
 }
 
 function closeAddBankDialog() {
@@ -74,6 +74,7 @@ function saveNewBank() {
     return;
   }
 
+  recordUndo('Add bank');
   state.bankAccounts.push({
     id: name,
     name: name,
@@ -86,7 +87,7 @@ function saveNewBank() {
   closeAddBankDialog();
   render();
   nativeVibrate(35);
-  nativeToast(`Added ${name} as a wallet`);
+  nativeToast(`Added ${name} to Bank Account`);
 }
 
 function promptDeleteBank(bankId) {
@@ -94,7 +95,7 @@ function promptDeleteBank(bankId) {
   pendingDeleteBankId = bankId;
   const bank = (state.bankAccounts || []).find(b => b.id === bankId || b.name === bankId);
   const name = bank ? bank.name : bankId;
-  document.getElementById('deleteBankDesc').textContent = `Are you sure you want to remove "${name}"? Existing transactions will be preserved.`;
+  document.getElementById('deleteBankDesc').textContent = `Delete "${name}" and all its transactions permanently? Income, expenses and transfers involving this bank will be deleted. Other wallet balances may change when transfers are removed. This cannot be undone.`;
   document.getElementById('deleteBankDialog').classList.add('show');
 }
 
@@ -105,10 +106,31 @@ function closeDeleteBankDialog() {
 
 function confirmDeleteBank() {
   if (!pendingDeleteBankId) return;
-  state.bankAccounts = (state.bankAccounts || []).filter(b => b.id !== pendingDeleteBankId && b.name !== pendingDeleteBankId);
+  const bank = (state.bankAccounts || []).find(b => b.id === pendingDeleteBankId || b.name === pendingDeleteBankId);
+  recordUndo('Delete bank');
+  const aliases = new Set([pendingDeleteBankId, bank && bank.id, bank && bank.name]
+    .filter(Boolean).map(name => name.toLowerCase()));
+  const matches = account => typeof account === 'string' && aliases.has(account.toLowerCase());
+  const deletedIds = new Set();
+  state.transactions = state.transactions.filter(tx => {
+    if (!matches(tx.account) && !matches(tx.toAccount)) return true;
+    deletedIds.add(tx.id);
+    return false;
+  });
+  unlinkDeletedLoanTransactions(deletedIds);
+  state.bankAccounts = (state.bankAccounts || []).filter(b => b !== bank);
+  if (matches(state.activeFilter)) state.activeFilter = 'all';
+  if (deletedIds.has(state.editingTxId)) {
+    state.editingTxId = null;
+    closeModal();
+  }
+  if (deletedIds.has(state.viewingTxId)) {
+    state.viewingTxId = null;
+    closeDetailModal();
+  }
   saveState();
   closeDeleteBankDialog();
   render();
   nativeVibrate(30);
-  nativeToast('Bank wallet removed');
+  nativeToast('Bank wallet and its transactions deleted');
 }

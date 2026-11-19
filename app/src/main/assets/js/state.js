@@ -11,6 +11,7 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { id: 'education', name: 'Education', icon: 'school' },
   { id: 'personal', name: 'Personal Care', icon: 'content_cut' },
   { id: 'travel', name: 'Travel & Trips', icon: 'flight' },
+  { id: 'free_transfer', name: 'Free Transfer', icon: 'swap_horiz' },
   { id: 'other_exp', name: 'Other', icon: 'auto_awesome' }
 ];
 
@@ -51,9 +52,14 @@ function categoryIconFor(tx) {
   return tx.type === 'income' ? 'paid' : 'payments';
 }
 
+function isNonSpendExpense(tx) {
+  return !!(tx && tx.type === 'expense' && (tx.categoryId === 'free_transfer' || tx.categoryName === 'Free Transfer'));
+}
+
 let state = {
   transactions: [],
   bankAccounts: [],
+  loans: [],
   settings: {
     currency: 'Rs.',
     budget: 35000,
@@ -89,6 +95,7 @@ function loadState() {
       const parsed = JSON.parse(data);
       state.transactions = parsed.transactions || [];
       state.bankAccounts = parsed.bankAccounts || [];
+      state.loans = parsed.loans || [];
       state.settings = Object.assign({
         currency: 'Rs.',
         budget: 35000,

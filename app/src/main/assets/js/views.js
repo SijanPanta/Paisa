@@ -1,19 +1,29 @@
 // ── UI RENDERING ───────────────────────────────────────────────
+const TX_PAGE_SIZE = 20;
+let txVisibleCount = TX_PAGE_SIZE;
+let lastTxKey = null;
+
 function render() {
   renderHeaderAndHero();
   renderFilterChips();
   renderTransactions();
   renderAnalytics();
   renderWallets();
+  renderLoans();
+  renderLoanDetail();
   renderSettings();
+  updateUndoButton();
   updateTheme();
 }
 
 function renderHeaderAndHero() {
   document.getElementById('currencyPrefix').textContent = state.settings.currency;
+  const loanCurrency = document.getElementById('loanCurrencySymbol');
+  if (loanCurrency) loanCurrency.textContent = state.settings.currency;
 
   let totalInc = 0;
   let totalExp = 0;
+  let totalSpent = 0;
 
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -21,18 +31,21 @@ function renderHeaderAndHero() {
   state.transactions.forEach(t => {
     const val = Number(t.amount) || 0;
     if (t.type === 'income') totalInc += val;
-    else if (t.type === 'expense') totalExp += val;
+    else if (t.type === 'expense') {
+      totalExp += val;
+      if (!isNonSpendExpense(t)) totalSpent += val;
+    }
   });
 
   const net = totalInc - totalExp;
   document.getElementById('netBalanceVal').textContent = Number(net).toLocaleString('en-IN');
   document.getElementById('totalIncomeVal').textContent = formatCurrency(totalInc);
-  document.getElementById('totalExpenseVal').textContent = formatCurrency(totalExp);
+  document.getElementById('totalExpenseVal').textContent = formatCurrency(totalSpent);
 
   // Monthly Budget Calculation
   let monthExpenses = 0;
   state.transactions.forEach(t => {
-    if (t.type === 'expense') {
+    if (t.type === 'expense' && !isNonSpendExpense(t)) {
       const d = new Date(t.date);
       if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
         monthExpenses += Number(t.amount) || 0;
@@ -57,9 +70,23 @@ function renderHeaderAndHero() {
   }
 }
 
+function isLoanLinkedTransaction(tx) {
+  return !!(tx && (tx.loanId || tx.categoryId === 'loan_pay' || tx.categoryId === 'loan_receive'));
+}
+
+function showMoreTransactions() {
+  txVisibleCount += TX_PAGE_SIZE;
+  renderTransactions();
+}
+
 function renderTransactions() {
   const listEl = document.getElementById('txListContainer');
-  let txs = [...state.transactions];
+  const txKey = `${state.activeFilter}|${state.searchQuery}`;
+  if (txKey !== lastTxKey) {
+    txVisibleCount = TX_PAGE_SIZE;
+    lastTxKey = txKey;
+  }
+  let txs = (state.transactions || []).filter(tx => !isLoanLinkedTransaction(tx));
 
   // Filter by type or wallet
   if (state.activeFilter !== 'all') {
@@ -67,20 +94,12 @@ function renderTransactions() {
     if (filterLower === 'expense' || filterLower === 'income') {
       txs = txs.filter(t => t.type === filterLower);
     } else if (filterLower === 'bank') {
-      // 'bank' matches generic Bank or any custom bank account
-      txs = txs.filter(t => {
-        const acc = (t.account || '').toLowerCase();
-        const toAcc = (t.toAccount || '').toLowerCase();
-        const isBankMatch = (name) => {
-          if (!name) return false;
-          if (name === 'bank' || name === 'bank account') return true;
-          return (state.bankAccounts || []).some(b => (b.name || '').toLowerCase() === name || (b.id || '').toLowerCase() === name);
-        };
-        return isBankMatch(acc) || isBankMatch(toAcc);
-      });
+      txs = txs.filter(t => isBankWallet(t.account) ||
+        (t.type === 'transfer' && isBankWallet(t.toAccount)));
     } else {
-      // Wallet filter (cash, esewa, khalti, or specific bank)
-      txs = txs.filter(t => (t.account && t.account.toLowerCase() === filterLower) || (t.toAccount && t.toAccount.toLowerCase() === filterLower));
+      const walletId = resolveWalletId(state.activeFilter).toLowerCase();
+      txs = txs.filter(t => (t.account && resolveWalletId(t.account).toLowerCase() === walletId) ||
+        (t.toAccount && resolveWalletId(t.toAccount).toLowerCase() === walletId));
     }
   }
 
@@ -97,8 +116,19 @@ function renderTransactions() {
   // Sort newest first
   txs.sort((a, b) => new Date(b.date + ' ' + (b.time || '00:00')) - new Date(a.date + ' ' + (a.time || '00:00')));
 
+  const loanRedirectHtml = (state.loans || []).length ? `
+    <button type="button" class="tx-loan-redirect" onclick="switchTab('viewLoans')">
+      <span class="tx-loan-redirect-icon">${mi('payments')}</span>
+      <span class="tx-loan-redirect-copy">
+        <strong>Friend loans are tracked separately</strong>
+        <small>Open the loans balance sheet for approvals and repayments</small>
+      </span>
+      <span class="tx-loan-redirect-arrow">${mi('arrow_forward')}</span>
+    </button>
+  ` : '';
+
   if (txs.length === 0) {
-    listEl.innerHTML = `
+    listEl.innerHTML = loanRedirectHtml + `
       <div class="empty-state">
         <div class="empty-state-icon">${mi('receipt_long')}</div>
         <h3>No transactions found</h3>
@@ -108,15 +138,17 @@ function renderTransactions() {
     return;
   }
 
+  const visibleTxs = txs.slice(0, txVisibleCount);
+
   // Group by date
   const groups = {};
-  txs.forEach(t => {
+  visibleTxs.forEach(t => {
     const dateKey = t.date || 'Unknown Date';
     if (!groups[dateKey]) groups[dateKey] = [];
     groups[dateKey].push(t);
   });
 
-  let html = '';
+  let html = loanRedirectHtml;
   for (const [dateStr, items] of Object.entries(groups)) {
     html += `<div class="tx-group-header"><span>${formatDateHeader(dateStr)}</span></div>`;
     html += '<div class="tx-card">';
@@ -150,6 +182,10 @@ function renderTransactions() {
     html += '</div>';
   }
 
+  if (txs.length > visibleTxs.length) {
+    html += `<button type="button" class="show-more-btn" onclick="showMoreTransactions()">Show more (${txs.length - visibleTxs.length} left)</button>`;
+  }
+
   listEl.innerHTML = html;
 }
 
@@ -159,13 +195,14 @@ function renderAnalytics() {
 
   // Expense category breakdown
   const catTotals = {};
-  let totalExp = 0;
+  let totalSpent = 0;
   let totalInc = 0;
 
   state.transactions.forEach(t => {
     const amt = Number(t.amount) || 0;
     if (t.type === 'expense') {
-      totalExp += amt;
+      if (isNonSpendExpense(t)) return;
+      totalSpent += amt;
       const key = t.categoryName || 'Other';
       catTotals[key] = (catTotals[key] || 0) + amt;
     } else if (t.type === 'income') {
@@ -180,7 +217,7 @@ function renderAnalytics() {
   } else {
     let catHtml = '';
     sortedCats.forEach(([name, amt]) => {
-      const pct = Math.round((amt / (totalExp || 1)) * 100);
+      const pct = Math.round((amt / (totalSpent || 1)) * 100);
       catHtml += `
         <div class="cat-breakdown-row">
           <div class="cat-breakdown-header">
@@ -226,80 +263,12 @@ function renderAnalytics() {
   accountBreakdownEl.innerHTML = accHtml;
 
   // Summary indicators
-  const savingsRate = totalInc > 0 ? Math.max(0, Math.round(((totalInc - totalExp) / totalInc) * 100)) : 0;
+  const savingsRate = totalInc > 0 ? Math.max(0, Math.round(((totalInc - totalSpent) / totalInc) * 100)) : 0;
   document.getElementById('savingsRateVal').textContent = `${savingsRate}%`;
 
   const daysInMonth = new Date().getDate();
-  const avgDaily = Math.round(totalExp / daysInMonth);
+  const avgDaily = Math.round(totalSpent / daysInMonth);
   document.getElementById('avgDailySpendVal').textContent = formatCurrency(avgDaily);
-}
-
-function renderWallets() {
-  const container = document.getElementById('walletsContainer');
-  const balances = {};
-  const counts = {};
-  const allWallets = getAllWallets();
-
-  allWallets.forEach(w => {
-    balances[w.id] = 0;
-    counts[w.id] = 0;
-  });
-
-  state.transactions.forEach(t => {
-    const amt = Number(t.amount) || 0;
-    if (t.type === 'income') {
-      balances[t.account] = (balances[t.account] || 0) + amt;
-      counts[t.account] = (counts[t.account] || 0) + 1;
-    } else if (t.type === 'expense') {
-      balances[t.account] = (balances[t.account] || 0) - amt;
-      counts[t.account] = (counts[t.account] || 0) + 1;
-    } else if (t.type === 'transfer') {
-      balances[t.account] = (balances[t.account] || 0) - amt;
-      balances[t.toAccount] = (balances[t.toAccount] || 0) + amt;
-      counts[t.account] = (counts[t.account] || 0) + 1;
-      counts[t.toAccount] = (counts[t.toAccount] || 0) + 1;
-    }
-  });
-
-  let html = '';
-  allWallets.forEach(w => {
-    const bal = balances[w.id] || 0;
-    const count = counts[w.id] || 0;
-    const isCustomBank = !!w.isBank;
-    html += `
-      <div class="wallet-card" onclick="openAddModalForWallet('${escapeHtml(w.id)}')">
-        <div class="wallet-left">
-          <div class="wallet-icon">${mi(w.icon)}</div>
-          <div class="wallet-info">
-            <div class="wallet-title">
-              <span>${escapeHtml(w.name)}</span>
-              ${isCustomBank ? '<span class="bank-badge">Bank</span>' : ''}
-            </div>
-            <div class="wallet-count">${count} ${count === 1 ? 'transaction' : 'transactions'} • <span class="wallet-tap-hint">+ New Tx</span></div>
-          </div>
-        </div>
-        <div class="wallet-right">
-          <div class="wallet-balance">${formatCurrency(bal)}</div>
-          <div class="wallet-actions">
-            <button type="button" class="wallet-btn-icon" title="View Timeline" onclick="event.stopPropagation(); filterByWallet('${escapeHtml(w.id)}')">${mi('receipt_long')}</button>
-            ${isCustomBank ? `<button type="button" class="wallet-btn-icon delete" title="Remove Bank" onclick="event.stopPropagation(); promptDeleteBank('${escapeHtml(w.id)}')">${mi('delete')}</button>` : ''}
-          </div>
-        </div>
-      </div>
-    `;
-  });
-
-  html += `
-    <div class="add-wallet-card" onclick="openAddBankDialog()">
-      <div class="add-wallet-icon">${mi('add')}</div>
-      <div>
-        <div class="add-wallet-title">Add Bank Account</div>
-        <div class="add-wallet-desc">Track a bank as a separate wallet</div>
-      </div>
-    </div>
-  `;
-
-  container.innerHTML = html;
 }
 
 function renderFilterChips() {

@@ -106,7 +106,7 @@ test('missing transaction IDs and delete without selection are harmless', () => 
   assert.equal(app.element('txModal').classList.contains('show'), false);
 });
 
-test('custom banks validate names, appear in wallets/selects/filters and delete without losing history', () => {
+test('custom banks validate names, appear in wallets/selects/filters and delete with their history', () => {
   const app = createApp();
   assert.deepEqual(Array.from(app.call('getAllWallets'), wallet => wallet.id), ['Cash', 'eSewa', 'Khalti', 'Bank', 'ConnectIPS', 'Savings']);
   app.call('openAddBankDialog');
@@ -120,7 +120,8 @@ test('custom banks validate names, appear in wallets/selects/filters and delete 
   assert.equal(app.state.bankAccounts[0].id, 'Nabil & Co');
   assert.equal(app.state.bankAccounts[0].isBank, true);
   assert.equal(app.call('getAllWallets').length, 7);
-  assert.match(app.element('walletsContainer').innerHTML, /Nabil &amp; Co/);
+  assert.doesNotMatch(app.element('walletsContainer').innerHTML, /Nabil &amp; Co/);
+  assert.match(app.element('bankAccountsContainer').innerHTML, /Nabil &amp; Co/);
   assert.ok(app.document.querySelector('#typeFilterRow .pill-chip[data-filter="nabil & co"]'));
   app.call('openAddModalForWallet', 'Nabil & Co');
   assert.equal(app.element('txAccountSelect').value, 'Nabil & Co');
@@ -135,11 +136,11 @@ test('custom banks validate names, appear in wallets/selects/filters and delete 
   app.call('confirmDeleteBank');
   assert.equal(app.state.bankAccounts.length, 1, 'cancel clears pending delete');
   app.call('promptDeleteBank', 'Nabil & Co');
-  assert.match(app.element('deleteBankDesc').textContent, /Existing transactions will be preserved/);
+  assert.match(app.element('deleteBankDesc').textContent, /all its transactions permanently/);
   app.call('confirmDeleteBank');
   assert.equal(app.state.bankAccounts.length, 0);
-  assert.equal(app.state.transactions[0].account, 'Nabil & Co');
-  assert.equal(JSON.parse(app.storage.get('paisa_state')).transactions.length, 1);
+  assert.equal(app.state.transactions.length, 0);
+  assert.equal(JSON.parse(app.storage.get('paisa_state')).transactions.length, 0);
 });
 
 test('transfers affect both wallet balances/counts, but not total income or expense', () => {
