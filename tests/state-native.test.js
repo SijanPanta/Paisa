@@ -1,0 +1,106 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { createApp } = require('./frontend-fixture');
+
+const plain = value => JSON.parse(JSON.stringify(value));
+
+test('loadState merges old settings with defaults without restoring session/UI state', () => {
+  const app = createApp({ storage: { paisa_state: JSON.stringify({
+    transactions: [{ id: 'old' }], bankAccounts: [{ id: 'Nabil', name: 'Nabil' }],
+    settings: { currency: '$', budget: 0, haptics: false }, isLocked: true, activeFilter: 'income'
+  }) } });
+  app.call('loadState');
+  assert.deepEqual(plain(app.state.transactions), [{ id: 'old' }]);
+  assert.equal(app.state.bankAccounts[0].name, 'Nabil');
+  assert.deepEqual(plain(app.state.settings), {
+    currency: '$', budget: 0, haptics: false, biometricLock: true, theme: 'light'
+  });
+  assert.equal(app.state.isLocked, false);
+  assert.equal(app.state.activeFilter, 'all');
+});
+
+test('saveState uses established local/native keys and omits only the lock session', () => {
+  const saves = [];
+  const app = createApp({ bridge: { saveData: (...args) => saves.push(args) } });
+  app.state.isLocked = true;
+  app.state.bankAccounts.push({ id: 'bank-1', name: 'Bank One' });
+  app.call('saveState');
+  const serialized = app.storage.get('paisa_state');
+  assert.equal(Object.hasOwn(JSON.parse(serialized), 'isLocked'), false);
+  assert.equal(JSON.parse(serialized).bankAccounts[0].id, 'bank-1');
+  assert.deepEqual(saves, [['paisa_backup', serialized]]);
+  assert.equal(app.state.isLocked, true);
+});
+
+test('native backup is used only when local state is absent', () => {
+  const gets = [];
+  const bridge = { getData: (...args) => {
+    gets.push(args);
+    return JSON.stringify({ transactions: [{ id: 'native' }], settings: { theme: 'dark' } });
+  } };
+  const app = createApp({ bridge });
+  app.call('loadState');
+  assert.deepEqual(gets, [['paisa_backup', '']]);
+  assert.equal(app.state.transactions[0].id, 'native');
+  assert.equal(app.state.settings.theme, 'dark');
+  gets.length = 0;
+  const local = createApp({ bridge, storage: { paisa_state: '{"transactions":[{"id":"local"}]}' } });
+  local.call('loadState');
+  assert.equal(local.state.transactions[0].id, 'local');
+  assert.equal(gets.length, 0);
+});
+
+test('corrupt local JSON is logged and leaves usable defaults', () => {
+  const app = createApp({ storage: { paisa_state: '{broken' } });
+  assert.doesNotThrow(() => app.call('loadState'));
+  assert.equal(app.calls.errors.length, 1);
+  assert.equal(app.state.transactions.length, 0);
+  assert.equal(app.state.settings.currency, 'Rs.');
+});
+
+test('native helpers preserve argument order and respect haptics preference', () => {
+  const calls = [];
+  const bridge = Object.fromEntries(['vibrate', 'showToast', 'shareText', 'saveFile'].map(name =>
+    [name, (...args) => calls.push([name, ...args])]));
+  const app = createApp({ bridge });
+  app.call('nativeVibrate');
+  app.call('nativeToast', 'hello');
+  app.call('nativeShare', 'title', 'body');
+  app.call('nativeSaveFile', 'a.json', 'application/json', '{}');
+  app.state.settings.haptics = false;
+  app.call('nativeVibrate', 99);
+  assert.deepEqual(calls, [
+    ['vibrate', 25], ['showToast', 'hello'], ['shareText', 'title', 'body'],
+    ['saveFile', 'a.json', 'application/json', '{}']
+  ]);
+});
+
+test('browser fallbacks vibrate, alert, share or copy without AndroidBridge', async () => {
+  const app = createApp();
+  app.call('nativeVibrate', 12);
+  app.call('nativeToast', 'preview');
+  app.call('nativeSaveFile', 'backup.json', 'application/json', '{"ok":true}');
+  assert.deepEqual(app.calls.vibrations, [12]);
+  assert.deepEqual(app.calls.alerts, ['preview', 'Copied to clipboard!']);
+  assert.deepEqual(app.calls.clipboard, ['{"ok":true}']);
+  const shares = [];
+  const shared = createApp({ navigator: { share: payload => { shares.push(plain(payload)); return Promise.reject(new Error('cancelled')); } } });
+  shared.call('nativeShare', 'title', 'text');
+  await Promise.resolve();
+  assert.deepEqual(shares, [{ title: 'title', text: 'text' }]);
+});
+
+test('formatters retain currency grouping, relative dates and HTML escaping', () => {
+  const app = createApp();
+  assert.equal(app.call('formatCurrency', 123456.75), 'Rs. 1,23,456.75');
+  app.state.settings.currency = '$';
+  assert.equal(app.call('formatCurrency', null), '$ 0');
+  assert.equal(app.call('formatDateHeader', new Date().toISOString()), 'Today');
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  assert.equal(app.call('formatDateHeader', yesterday.toISOString()), 'Yesterday');
+  assert.equal(app.call('escapeHtml', '<a title="x">&'), '&lt;a title=&quot;x&quot;&gt;&amp;');
+  assert.equal(app.call('escapeHtml', null), '');
+});

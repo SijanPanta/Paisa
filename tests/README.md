@@ -1,0 +1,75 @@
+# Frontend regression tests
+
+Run from the repository root with Node.js 20+ (validated with Node.js 22):
+
+```sh
+node --test tests/*.test.js
+```
+
+No installation, Android SDK, browser, network or third-party packages are needed.
+
+## Scope
+
+The tests execute the real `app/src/main/assets/index.html` scripts in a shared
+`node:vm` context, in HTML order, as classic scripts. They do not import modules
+or concatenate scripts into a synthetic wrapper. Each test gets fresh state,
+DOM, localStorage and optional AndroidBridge doubles.
+
+Coverage includes:
+
+- Local persistence, default migration, native backup fallback and native/browser helpers.
+- Default wallets, custom bank validation/add/remove, selects, filters and preserved history.
+- Expense/income/transfer creation, detail display, editing/type changes, deletion confirmation,
+  invalid amounts, same-wallet transfer rejection, wallet balances and analytics totals.
+- CSV export, JSON backup/restore, legacy restore and malformed/cancelled file selections.
+- Biometric supported/unsupported/current-session startup, authentication callbacks,
+  settings changes, native lock/resume hooks and touch session refresh.
+- Theme, navigation, hardware back priority, search, settings/presets, modal/backdrop bindings,
+  monthly budget display and exactly one listener/render/vibration per filter click.
+- Ordered local scripts, local script/style/image and CSS `url()` existence, retained globals,
+  and compilation/global function resolution for static and representative rendered handlers.
+
+`baseline-globals.json` records the function/callback names inspected in
+`build/refactor-baseline/index.html`. The two retired no-op lifecycle callbacks
+are intentionally omitted. Tests do not require that temporary baseline file at runtime.
+The removed `WALLETS` constant must remain absent; `initApp` must be available.
+
+`frontend-fixture.js` deliberately implements only the DOM surface this app uses:
+HTML elements, descendant/id/class/equality-attribute selectors, classList,
+text/HTML/value properties, event listener registration/dispatch, focus and scrolling.
+It loads actual HTML IDs rather than inventing missing elements. Render functions run
+normally, so a missing DOM ID or cross-script global fails a behavioral test.
+
+## Limitations
+
+- This is not a browser or Android emulator: no layout, CSS rendering, animation,
+  WebView lifecycle, real fingerprint prompts, native file pickers or permission checks.
+- Events are explicitly dispatched, without browser bubbling/default actions or automatic
+  inline-handler execution. Inline handlers are separately compiled and their global calls
+  checked for representative normal names, not exhaustively executed.
+- FileReader completes synchronously from supplied text. Timers run only when flushed;
+  their real delays, races and OS scheduling are not simulated.
+- The HTML parser and selector implementation are intentionally limited, not standards-complete.
+  Real-device/browser smoke tests are still needed, particularly for hostile restored data.
+- Remote resources are not fetched. Asset checks cover local references in HTML and linked CSS,
+  not URLs assembled dynamically in JavaScript.
+
+## Baseline issues observed (application code intentionally untouched)
+
+1. `escapeHtml` does not quote JavaScript string literals. Adding `O'Bank` produces
+   `onclick="openAddModalForWallet('O'Bank')"`, which fails to compile. Other generated
+   wallet action handlers use the same pattern. Normal-name handler contract tests are
+   not a security audit; several transaction/category fields also enter HTML unescaped.
+2. `openBudgetDialog` uses `state.settings.budget || 35000`, so saving zero hides the
+   budget display correctly but reopening the dialog shows `35000` instead of zero.
+3. Restoring a legacy `{ "transactions": [] }` backup leaves `settings.biometricLock`
+   undefined, whereas `loadState` explicitly defaults it to true. Existing `!== false`
+   checks treat it as enabled, but the saved settings shape is inconsistent.
+4. CSV export doubles quotes in notes only. Custom bank names/currencies/categories
+   containing quotes are not escaped consistently. Import hardening and CSV formula
+   injection defenses are outside the behavior-preserving extraction tests.
+
+The old inline startup also adds a second filter listener after `renderFilterChips`.
+The single-listener regression test intentionally fails until that duplication is removed
+in the frontend extraction. The ordered-script/global tests likewise require the extracted
+frontend rather than the old monolithic HTML.
