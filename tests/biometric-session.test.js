@@ -9,6 +9,7 @@ function sessionBridge() {
   let prompts = 0;
   return {
     isBiometricSupported: () => true,
+    shouldLockOnStart: () => true,
     isSessionUnlocked: () => authenticated,
     setSessionUnlocked: value => { authenticated = value; },
     authenticateBiometric: () => { prompts++; },
@@ -60,6 +61,25 @@ test('a stale resume-unlocked callback cannot dismiss an explicit lock or cancel
   app.flushTimers();
   assert.equal(app.state.isLocked, true);
   assert.equal(app.element('biometricLockOverlay').style.display, 'flex');
+});
+
+test('widget/trusted start skips the fingerprint prompt and keeps the app unlocked', () => {
+  let unlockedCalls = 0;
+  const bridge = {
+    isBiometricSupported: () => true,
+    shouldLockOnStart: () => false,
+    isSessionUnlocked: () => true,
+    setSessionUnlocked: value => { if (value) unlockedCalls++; },
+    authenticateBiometric: () => { throw new Error('widget must not prompt'); },
+    refreshActiveTimestamp() {}
+  };
+  const app = createApp({ bridge });
+  app.start();
+  app.flushTimers();
+  assert.equal(app.state.isLocked, false);
+  assert.equal(app.element('biometricLockOverlay').classList.contains('hidden'), true);
+  assert.equal(app.element('biometricLockOverlay').style.display, 'none');
+  assert.ok(unlockedCalls >= 1, 'native session is refreshed as unlocked');
 });
 
 test('cancelling security-setting verification preserves the existing unlocked session', () => {

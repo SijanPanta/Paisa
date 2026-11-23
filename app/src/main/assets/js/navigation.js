@@ -42,6 +42,24 @@ function updateTheme() {
   }
 }
 
+function syncScrollLock() {
+  const locked =
+    !!document.querySelector('.modal-backdrop.show') ||
+    !!document.querySelector('.md-dialog-backdrop.show') ||
+    !!document.querySelector('.bank-accounts-panel.open');
+  if (document.body.classList.contains('overlay-open') !== locked) {
+    document.body.classList.toggle('overlay-open', locked);
+  }
+}
+
+function initScrollLock() {
+  syncScrollLock();
+  if (typeof MutationObserver === 'function') {
+    const observer = new MutationObserver(() => syncScrollLock());
+    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+  }
+}
+
 // ── TAB SWITCHING ──────────────────────────────────────────────
 function switchTab(viewId) {
   nativeVibrate(15);
@@ -89,13 +107,26 @@ window.handleAndroidBack = function() {
   if (openDialog) {
     if (openDialog.id === 'deleteBankDialog') closeDeleteBankDialog();
     else if (openDialog.id === 'loanAdjustDialog') closeLoanAdjustDialog();
+    else if (openDialog.id === 'addFriendDialog') closeAddFriendDialog();
+    else if (openDialog.id === 'deleteFriendDialog') closeDeleteFriendDialog();
+    else if (openDialog.id === 'deleteSplitDialog') closeDeleteSplitDialog();
     else if (openDialog.id === 'undoConfirmDialog') closeUndoConfirmDialog();
     else openDialog.classList.remove('show');
+    return true;
+  }
+  const friendsSheet = document.getElementById('friendsSheet');
+  if (friendsSheet && friendsSheet.classList.contains('show')) {
+    closeFriendsSheet();
     return true;
   }
   const modal = document.getElementById('txModal');
   if (modal && modal.classList.contains('show')) {
     closeModal();
+    return true;
+  }
+  const splitDetail = document.getElementById('splitDetailModal');
+  if (splitDetail && splitDetail.classList.contains('show')) {
+    closeSplitDetailModal();
     return true;
   }
   const loanModal = document.getElementById('loanModal');
@@ -106,6 +137,11 @@ window.handleAndroidBack = function() {
   const loanDetail = document.getElementById('loanDetailModal');
   if (loanDetail && loanDetail.classList.contains('show')) {
     closeLoanDetail();
+    return true;
+  }
+  const splitModal = document.getElementById('splitModal');
+  if (splitModal && splitModal.classList.contains('show')) {
+    closeSplitModal();
     return true;
   }
   const search = document.getElementById('searchBarWrap');

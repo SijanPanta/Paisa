@@ -39,11 +39,11 @@ test('main timeline redirects to loans, whose page buttons open the matching for
   app.element('loanPageToPayBtn').click();
   assert.equal(app.element('loanModal').classList.contains('show'), true);
   assert.equal(app.element('loanSheetTitle').textContent, 'New Friend Loan');
-  assert.match(app.element('loanDirectionHint').textContent, /deduct/);
+  assert.equal(app.element('loanDirectionHint').style.display, 'none');
   assert.equal(app.element('saveLoanBtn').textContent, 'Save To Pay');
 
   app.element('loanPageToReceiveBtn').click();
-  assert.match(app.element('loanDirectionHint').textContent, /add/);
+  assert.equal(app.element('loanDirectionHint').style.display, 'none');
   assert.equal(app.element('saveLoanBtn').textContent, 'Save To Receive');
 
   app.call('saveLoan');
@@ -57,6 +57,28 @@ test('main timeline redirects to loans, whose page buttons open the matching for
   assert.equal(app.element('loanModal').classList.contains('show'), false);
 });
 
+test('new loan sheet offers saved friends and links the selected friend', () => {
+  const app = loanApp();
+  app.element('addFriendBtn').click();
+  app.element('friendNameInput').value = 'Sita';
+  app.element('saveFriendBtn').click();
+
+  app.call('openLoanModal', 'receive');
+  const chips = app.element('loanFriendChips').querySelectorAll('.loan-friend-chip');
+  assert.equal(chips.length, 1);
+  assert.equal(chips[0].textContent, 'Sita');
+
+  chips[0].click();
+  assert.equal(app.element('loanPersonInput').value, 'Sita');
+  assert.equal(chips[0].classList.contains('active'), true);
+
+  app.element('loanAmountInput').value = '250';
+  app.call('saveLoan');
+  assert.equal(app.state.loans.length, 1);
+  assert.equal(app.state.loans[0].person, 'Sita');
+  assert.equal(app.state.loans[0].friendId, app.state.friends[0].id);
+});
+
 test('pending loans stay off Net Balance and have their own balance sheet', () => {
   const app = loanApp();
   addLoan(app, { direction: 'pay', amount: 500, person: 'Ram' });
@@ -67,12 +89,12 @@ test('pending loans stay off Net Balance and have their own balance sheet', () =
   assert.equal(app.element('loanPayTotal').textContent, 'Rs. 500');
   assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 800');
   assert.equal(app.element('loanNetVal').textContent, 'Rs. 300');
-  assert.equal(app.element('loanApprovedImpact').textContent, 'Rs. 0 in Net Balance');
+  assert.equal(app.element('loanApprovedImpact').textContent, 'Rs. 300 awaiting approval');
   assert.match(app.element('loanSummaryHint').textContent, /Rs\. 300 from 2 pending loans/);
   assert.equal(app.element('loanPendingList').querySelectorAll('.loan-card').length, 2);
   assert.equal(app.element('loanApprovedList').querySelectorAll('.loan-card').length, 0);
   assert.equal(app.element('loanNavBadge').textContent, '2');
-  assert.match(app.element('loanHeroHint').textContent, /2 pending loans/);
+  assert.equal(app.element('loanHeroHint').textContent, '2');
 
   const rows = app.element('loanPendingList').querySelectorAll('.loan-card');
   assert.match(rows[0].textContent, /Sita/);
@@ -103,7 +125,7 @@ test('approval records an expense or income, updates Net Balance and moves the l
   assert.equal(app.call('getWalletSummary').balances.Cash, -500);
   assert.equal(app.element('loanPendingList').querySelectorAll('.loan-card').length, 1);
   assert.equal(app.element('loanApprovedList').querySelectorAll('.loan-card').length, 1);
-  assert.equal(app.element('loanApprovedImpact').textContent, 'Rs. -500 in Net Balance');
+  assert.equal(app.element('loanApprovedImpact').textContent, 'Rs. 800 awaiting approval');
 
   approve(app, receive.id);
   assert.equal(app.state.transactions[0].type, 'income');
@@ -113,7 +135,7 @@ test('approval records an expense or income, updates Net Balance and moves the l
   assert.equal(app.element('loanPendingCount').textContent, '0 pending');
   assert.equal(app.element('loanApprovedCount').textContent, '2 approved');
   assert.equal(app.element('loanNavBadge').style.display, 'none');
-  assert.match(app.element('loanSummaryHint').textContent, /All loans are approved/);
+  assert.match(app.element('loanSummaryHint').textContent, /No loans are waiting for approval/);
 
   app.call('approveLoan', pay.id);
   assert.match(app.calls.alerts.at(-1), /already approved/);
@@ -182,7 +204,7 @@ test('editing a loan updates its fields and keeps an approved loan in sync with 
   assert.equal(app.state.transactions[0].type, 'income');
   assert.equal(app.state.transactions[0].amount, 900);
   assert.equal(app.element('netBalanceVal').textContent, '900');
-  assert.equal(app.element('loanApprovedImpact').textContent, 'Rs. 900 in Net Balance');
+  assert.equal(app.element('loanApprovedImpact').textContent, 'Rs. 0 awaiting approval');
 });
 
 test('loans survive reload and backup restore, and are cleared with all data', () => {

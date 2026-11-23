@@ -26,13 +26,14 @@ function loanAdjustments(loan) {
 }
 
 function loanTimeline(loan) {
+  const splitShares = Array.isArray(loan.splitShares) ? loan.splitShares : [];
   const entries = [{
     id: 'origin_' + loan.id,
-    label: LOAN_DIRECTIONS[loanDirectionOf(loan)].label + ' recorded',
+    label: splitShares.length ? 'Split bill recorded' : LOAN_DIRECTIONS[loanDirectionOf(loan)].label + ' recorded',
     note: loan.note || '',
     date: loan.date,
     time: loan.time || '',
-    amount: loanOriginalAmount(loan),
+    amount: splitShares.length ? 0 : loanOriginalAmount(loan),
     kind: 'origin'
   }];
   if (isLoanApproved(loan)) {
@@ -46,9 +47,18 @@ function loanTimeline(loan) {
       kind: 'approved'
     });
   }
+  splitShares.forEach((share, index) => entries.push({
+    id: 'split_share_' + loan.id + '_' + index,
+    label: `${share.name} owes`,
+    note: share.note || loan.note || '',
+    date: loan.date,
+    time: loan.time || '',
+    amount: Number(share.amount) || 0,
+    kind: 'add'
+  }));
   loanAdjustments(loan).forEach(adjustment => entries.push({
     id: adjustment.id,
-    label: Number(adjustment.delta) >= 0 ? 'Money added' : 'Money reduced',
+    label: adjustment.label || (Number(adjustment.delta) >= 0 ? 'Money added' : 'Money reduced'),
     note: adjustment.note || '',
     date: adjustment.date,
     time: adjustment.time || '',
@@ -97,13 +107,15 @@ function getLoanSummary() {
 function renderLoanHeroHint() {
   const el = document.getElementById('loanHeroHint');
   if (!el) return;
+  const notice = document.getElementById('loanNotice');
   const summary = getLoanSummary();
   if (!summary.pendingCount) {
-    el.textContent = 'No pending loans';
+    el.textContent = '';
+    if (notice) notice.style.display = 'none';
     return;
   }
-  const noun = summary.pendingCount === 1 ? 'loan' : 'loans';
-  el.textContent = `${summary.pendingCount} pending ${noun} · ${formatCurrency(summary.pendingNet)} not in Net Balance yet`;
+  el.textContent = String(summary.pendingCount);
+  if (notice) notice.style.display = 'flex';
 }
 
 function loanRow(loan, approved) {
@@ -175,8 +187,7 @@ function renderLoanDetail() {
       <div class="loan-detail-amount">${direction === 'receive' ? '+' : '-'} ${formatCurrency(loan.amount)}</div>
     </div>
     ${loan.note ? `<div class="loan-detail-note">${escapeHtml(loan.note)}</div>` : ''}
-    <div class="loan-detail-status ${approved ? 'approved' : 'pending'}">${approved ? 'Approved · included in Net Balance' : 'Pending · not in Net Balance yet'}</div>
-    <div class="loan-detail-hint">Payments and adjustments update this loan balance only; the approved Net Balance entry stays unchanged.</div>
+    <div class="loan-detail-status ${approved ? 'approved' : 'pending'}">${approved ? 'Approved' : 'Pending'}</div>
     <div class="loan-timeline-heading">Loan timeline <span>${entries.length}</span></div>
     <div class="loan-timeline">
       ${entries.map(entry => `
@@ -264,13 +275,13 @@ function renderLoans() {
   pending.sort(sortNewest);
   approved.sort(sortNewest);
 
-  document.getElementById('loanNetVal').textContent = formatCurrency(summary.net);
-  document.getElementById('loanPayTotal').textContent = formatCurrency(summary.pay.total);
-  document.getElementById('loanReceiveTotal').textContent = formatCurrency(summary.receive.total);
-  document.getElementById('loanApprovedImpact').textContent = `${formatCurrency(summary.approvedNet)} in Net Balance`;
+  document.getElementById('loanNetVal').textContent = formatCurrency(summary.pendingNet);
+  document.getElementById('loanPayTotal').textContent = formatCurrency(summary.pay.pending);
+  document.getElementById('loanReceiveTotal').textContent = formatCurrency(summary.receive.pending);
+  document.getElementById('loanApprovedImpact').textContent = `${formatCurrency(summary.pendingNet)} awaiting approval`;
   document.getElementById('loanSummaryHint').textContent = summary.pendingCount
     ? `${formatCurrency(summary.pendingNet)} from ${summary.pendingCount} pending ${summary.pendingCount === 1 ? 'loan' : 'loans'} is waiting for approval.`
-    : 'All loans are approved and included in your Net Balance.';
+    : 'No loans are waiting for approval.';
   document.getElementById('loanPendingCount').textContent = `${summary.pendingCount} pending`;
   document.getElementById('loanApprovedCount').textContent = `${summary.approvedCount} approved`;
 
@@ -306,14 +317,27 @@ function renderLoanAccountSelect(selected) {
   updateAccountPickerLabels();
 }
 
-function setLoanDirection(direction) {
-  loanDirection = direction === 'receive' ? 'receive' : 'pay';
-  document.querySelectorAll('.loan-direction-tab').forEach(tab => {
-    tab.classList.toggle('active', tab.dataset.direction === loanDirection);
+function setLoanTab(name) {
+  document.querySelectorAll('#loanDirectionSwitcher .loan-direction-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.direction === name);
   });
-  document.getElementById('loanDirectionHint').textContent = loanDirection === 'pay'
-    ? 'You borrowed money. Approving this loan will deduct it from Net Balance.'
-    : 'You lent money. Approving this loan will add it to Net Balance.';
+}
+
+function restoreLoanForm() {
+  const form = document.getElementById('splitForm');
+  const home = document.getElementById('splitFormHome');
+  if (form && home && form.parentElement !== home) home.appendChild(form);
+  const host = document.getElementById('loanSplitHost');
+  if (host) host.style.display = 'none';
+  const fields = document.getElementById('loanFormFields');
+  if (fields) fields.style.display = 'block';
+  document.getElementById('loanSheetTitle').textContent = 'New Friend Loan';
+}
+
+function setLoanDirection(direction) {
+  restoreLoanForm();
+  loanDirection = direction === 'receive' ? 'receive' : 'pay';
+  setLoanTab(loanDirection);
   document.getElementById('saveLoanBtn').textContent = `Save To ${loanDirection === 'pay' ? 'Pay' : 'Receive'}`;
 }
 
@@ -326,6 +350,8 @@ function openLoanModal(direction = 'pay', loanId = null) {
   document.getElementById('loanSheetTitle').textContent = loan ? 'Edit Loan' : 'New Friend Loan';
   document.getElementById('loanAmountInput').value = loan ? loan.amount : '';
   document.getElementById('loanPersonInput').value = loan ? (loan.person || '') : '';
+  const matchedFriend = loan ? findFriendByName(loan.person) : null;
+  renderLoanFriendChips(loan ? loan.friendId || (matchedFriend && matchedFriend.id) : null);
   document.getElementById('loanNoteInput').value = loan ? (loan.note || '') : '';
   document.getElementById('loanDateInput').value = loan ? loan.date : new Date().toISOString().split('T')[0];
   renderLoanAccountSelect(loan ? loan.account : 'Cash');
@@ -339,6 +365,7 @@ function openLoanModal(direction = 'pay', loanId = null) {
 }
 
 function closeLoanModal() {
+  restoreLoanForm();
   document.getElementById('loanModal').classList.remove('show');
   editingLoanId = null;
 }
@@ -365,6 +392,7 @@ function saveLoan() {
   const date = document.getElementById('loanDateInput').value || new Date().toISOString().split('T')[0];
   const account = document.getElementById('loanAccountSelect').value;
   const note = document.getElementById('loanNoteInput').value.trim();
+  const matchedFriend = findFriendByName(person);
   const now = new Date();
   const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -376,7 +404,10 @@ function saveLoan() {
     const previousAmount = Number(loan.amount) || 0;
     const amountChanged = amount !== previousAmount;
     loan.originalAmount = loanOriginalAmount(loan);
-    Object.assign(loan, { direction: loanDirection, amount, person, account, note, date });
+    Object.assign(loan, {
+      direction: loanDirection, amount, person, account, note, date,
+      friendId: matchedFriend ? matchedFriend.id : null
+    });
     if (amountChanged) {
       loan.adjustments = loanAdjustments(loan).concat([{
         id: 'adjust_' + now.getTime() + '_' + Math.random().toString(36).substr(2, 5),
@@ -411,6 +442,7 @@ function saveLoan() {
       originalAmount: amount,
       adjustments: [],
       person,
+      friendId: matchedFriend ? matchedFriend.id : null,
       account,
       note,
       date,

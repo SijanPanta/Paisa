@@ -50,9 +50,9 @@
       </div>
     </div>
     <div class="header-actions">
-      <button class="icon-btn" id="undoBtn" title="Nothing to undo" style="display:none;">↩</button>
-      <button class="icon-btn" id="searchToggleBtn" title="Search"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M380-320q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l224 224q11 11 11 28t-11 28q-11 11-28 11t-28-11L532-372q-30 24-69 38t-83 14Zm0-80q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg></button>
-      <button class="icon-btn" id="themeToggleBtn" title="Toggle Theme"><span id="themeToggleIcon"></span></button>
+      <button class="icon-btn" id="undoBtn" title="Nothing to undo" aria-label="Undo last action" style="display:none;">↩</button>
+      <button class="icon-btn" id="searchToggleBtn" title="Search" aria-label="Search transactions"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M380-320q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l224 224q11 11 11 28t-11 28q-11 11-28 11t-28-11L532-372q-30 24-69 38t-83 14Zm0-80q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg></button>
+      <button class="icon-btn" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle color theme"><span id="themeToggleIcon"></span></button>
     </div>
   </header>
 
@@ -65,23 +65,23 @@
 
     <!-- VIEW 1: HOME / TRANSACTIONS -->
     <section id="viewHome" class="view-page active">
-      <!-- Hero Balance Card -->
+      <!-- Compact Balance Summary -->
       <div class="hero-card">
-        <div class="hero-label">Net Balance</div>
+        <div class="hero-label">Net balance</div>
         <div class="hero-balance" id="netBalanceDisplay">
-          <small id="currencyPrefix">Rs.</small> <span id="netBalanceVal">0</span>
+          <small id="currencyPrefix">Rs.</small><span id="netBalanceVal">0</span>
         </div>
 
         <div class="hero-stats">
-          <div class="stat-pill">
-            <div class="stat-icon inc">↓</div>
+          <div class="stat-pill income">
+            <div class="stat-icon inc"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M647-440H200q-17 0-28.5-11.5T160-480q0-17 11.5-28.5T200-520h447L451-716q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l264 264q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L508-188q-11 11-27.5 11T452-188q-12-12-12-28.5t12-28.5l195-195Z"/></svg></div>
             <div class="stat-meta">
               <span>Income</span>
               <strong id="totalIncomeVal">Rs. 0</strong>
             </div>
           </div>
-          <div class="stat-pill">
-            <div class="stat-icon exp">↑</div>
+          <div class="stat-pill expense">
+            <div class="stat-icon exp"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M647-440H200q-17 0-28.5-11.5T160-480q0-17 11.5-28.5T200-520h447L451-716q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l264 264q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L508-188q-11 11-27.5 11T452-188q-12-12-12-28.5t12-28.5l195-195Z"/></svg></div>
             <div class="stat-meta">
               <span>Spent</span>
               <strong id="totalExpenseVal">Rs. 0</strong>
@@ -92,29 +92,37 @@
         <!-- Monthly Budget Progress -->
         <div class="budget-indicator" id="budgetWrap">
           <div class="budget-info">
-            <span>Monthly Budget (<span id="budgetPercentVal">0%</span>)</span>
+            <span>Monthly budget · <span id="budgetPercentVal">0%</span></span>
             <span id="budgetRemainingVal">Rs. 0 left</span>
           </div>
           <div class="progress-bar-wrap">
             <div class="progress-bar-fill" id="budgetProgressBar" style="width: 0%;"></div>
           </div>
         </div>
+      </div>
 
-        <button type="button" class="loan-sheet-link" id="openLoansBtn">
-          <span>Loans balance sheet</span>
-          <span class="loan-sheet-link-end"><span id="loanHeroHint">No pending loans</span> →</span>
+      <!-- Contextual notice: shown only while loans are pending approval -->
+      <div class="loan-notice" id="loanNotice" style="display:none;">
+        <button type="button" class="loan-notice-btn" id="openLoansBtn" aria-label="Open loans balance sheet">
+          <span class="loan-notice-icon"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M560-440q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM280-320q-33 0-56.5-23.5T200-400v-320q0-33 23.5-56.5T280-800h560q33 0 56.5 23.5T920-720v320q0 33-23.5 56.5T840-320H280Zm80-80h400q0-33 23.5-56.5T840-480v-160q-33 0-56.5-23.5T760-720H360q0 33-23.5 56.5T280-640v160q33 0 56.5 23.5T360-400Zm400 240H120q-33 0-56.5-23.5T40-240v-400q0-17 11.5-28.5T80-680q17 0 28.5 11.5T120-640v400h640q17 0 28.5 11.5T800-200q0 17-11.5 28.5T760-160ZM280-400v-320 320Z"/></svg></span>
+          <span class="loan-notice-copy">
+            <strong>Pending loans</strong>
+            <small id="loanHeroHint"></small>
+          </span>
+          <span class="loan-notice-action">Review <svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M647-440H200q-17 0-28.5-11.5T160-480q0-17 11.5-28.5T200-520h447L451-716q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l264 264q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L508-188q-11 11-27.5 11T452-188q-12-12-12-28.5t12-28.5l195-195Z"/></svg></span>
         </button>
       </div>
 
       <!-- Quick Filter Pills -->
-      <div class="chip-scroll" id="typeFilterRow">
-        <div class="pill-chip active" data-filter="all">All</div>
-        <div class="pill-chip" data-filter="expense">Expenses</div>
-        <div class="pill-chip" data-filter="income">Income</div>
-        <div class="pill-chip" data-filter="cash">Cash</div>
-        <div class="pill-chip" data-filter="esewa">eSewa</div>
-        <div class="pill-chip" data-filter="khalti">Khalti</div>
-        <div class="pill-chip" data-filter="bank">Bank</div>
+      <div class="chip-scroll" id="typeFilterRow" role="group" aria-label="Transaction filters">
+        <div class="pill-chip active" data-filter="all" role="button" tabindex="0">All</div>
+        <div class="pill-chip" data-filter="expense" role="button" tabindex="0">Expenses</div>
+        <div class="pill-chip" data-filter="income" role="button" tabindex="0">Income</div>
+        <div class="pill-chip" data-filter="split" role="button" tabindex="0">Split</div>
+        <div class="pill-chip" data-filter="cash" role="button" tabindex="0">Cash</div>
+        <div class="pill-chip" data-filter="esewa" role="button" tabindex="0">eSewa</div>
+        <div class="pill-chip" data-filter="khalti" role="button" tabindex="0">Khalti</div>
+        <div class="pill-chip" data-filter="bank" role="button" tabindex="0">Bank</div>
       </div>
 
       <!-- Transaction Groups List -->
@@ -168,7 +176,7 @@
           <button type="button" class="dialog-btn tonal" id="bankTimelineBtn">View bank transactions</button>
         </div>
         <h2 class="wallet-section-title">Your banks</h2>
-        <p class="bank-empty-hint" id="bankAccountsEmpty">Add your banks here to track each balance. Existing unassigned bank transactions stay in General bank balance.</p>
+        <div class="bank-empty-hint" id="bankAccountsEmpty" style="display:none;"></div>
         <div id="bankAccountsContainer"></div>
       </div>
     </section>
@@ -176,7 +184,10 @@
     <!-- VIEW 4: FRIEND LOANS BALANCE SHEET -->
     <section id="viewLoans" class="view-page">
       <div class="loan-summary-card">
-        <div class="hero-label">Loans Balance Sheet</div>
+        <div class="loan-summary-head">
+          <div class="hero-label">Loans Balance Sheet</div>
+          <button type="button" class="friend-add-btn" id="friendsBtn">Friends</button>
+        </div>
         <div class="loan-net-label">Net position</div>
         <div class="loan-net" id="loanNetVal">Rs. 0</div>
         <div class="loan-summary-stats">
@@ -189,13 +200,14 @@
             <strong id="loanReceiveTotal">Rs. 0</strong>
           </div>
         </div>
-        <div class="loan-approved-impact" id="loanApprovedImpact">Rs. 0 in Net Balance</div>
-        <p class="loan-summary-hint" id="loanSummaryHint">All loans are approved and included in your Net Balance.</p>
+        <div class="loan-approved-impact" id="loanApprovedImpact">Rs. 0 awaiting approval</div>
+        <p class="loan-summary-hint" id="loanSummaryHint" style="display:none;"></p>
       </div>
 
       <div class="loan-action-row">
         <button type="button" class="loan-quick-btn pay" id="loanPageToPayBtn">↗ To Pay</button>
         <button type="button" class="loan-quick-btn receive" id="loanPageToReceiveBtn">↙ To Receive</button>
+        <button type="button" class="loan-quick-btn split" id="splitBillBtn" title="Split Bill">Split</button>
       </div>
 
       <div class="loan-section-heading">
@@ -210,7 +222,6 @@
       </div>
       <div id="loanApprovedList"></div>
 
-      <p class="loan-sheet-note">Pending loans stay off your Net Balance. Tap Approve to record them as income or an expense and update all wallet balances.</p>
     </section>
 
     <!-- VIEW 5: SETTINGS & BACKUP -->
@@ -293,7 +304,7 @@
   </main>
 
   <!-- Floating Add Button -->
-  <button class="fab-btn" id="fabAddBtn" title="Add Transaction">+</button>
+  <button class="fab-btn" id="fabAddBtn" title="Add Transaction" aria-label="Add transaction"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M440-440H240q-17 0-28.5-11.5T200-480q0-17 11.5-28.5T240-520h200v-200q0-17 11.5-28.5T480-760q17 0 28.5 11.5T520-720v200h200q17 0 28.5 11.5T760-480q0 17-11.5 28.5T720-440H520v200q0 17-11.5 28.5T480-200q-17 0-28.5-11.5T440-240v-200Z"/></svg></button>
 
   <!-- Bottom Navigation Bar -->
   <nav class="bottom-nav">
@@ -333,8 +344,12 @@
         <div class="type-tab active exp" data-type="expense">Expense</div>
         <div class="type-tab inc" data-type="income">Income</div>
         <div class="type-tab trf" data-type="transfer">Transfer</div>
+        <div class="type-tab spl" data-type="split">Split</div>
       </div>
 
+      <div id="txSplitHost" style="display:none;"></div>
+
+      <div id="txFormFields">
       <!-- Amount Input -->
       <div class="amount-input-wrap">
         <span class="currency-symbol-label" id="modalCurrencySymbol">Rs.</span>
@@ -393,6 +408,7 @@
       <button class="primary-btn" id="saveTxBtn">Save Transaction</button>
       <button class="delete-btn" id="deleteTxBtn" style="display:none;">Delete Transaction</button>
       <button class="undo-btn" id="undoTxModalBtn">↩ Undo last action</button>
+      </div>
     </div>
   </div>
 
@@ -406,7 +422,7 @@
       </div>
       <div id="txDetailBody"></div>
       <div class="detail-actions">
-        <button class="primary-btn" id="editTxFromDetailBtn">✏️ Edit</button>
+        <button class="primary-btn" id="editTxFromDetailBtn">Edit</button>
         <button class="delete-btn" id="deleteTxFromDetailBtn">Delete</button>
         <button class="undo-btn" id="undoTxBtn">↩ Undo</button>
       </div>
@@ -425,45 +441,138 @@
       <div class="loan-direction-switcher" id="loanDirectionSwitcher">
         <div class="loan-direction-tab pay active" data-direction="pay">To Pay</div>
         <div class="loan-direction-tab receive" data-direction="receive">To Receive</div>
+        <div class="loan-direction-tab split" data-direction="split">Split</div>
       </div>
-      <p class="loan-direction-hint" id="loanDirectionHint">You borrowed money. Approving this loan will deduct it from Net Balance.</p>
+      <div id="loanSplitHost" style="display:none;"></div>
+      <div id="loanFormFields">
+        <p class="loan-direction-hint" id="loanDirectionHint" style="display:none;"></p>
 
-      <div class="amount-input-wrap">
-        <span class="currency-symbol-label" id="loanCurrencySymbol">Rs.</span>
-        <input type="number" id="loanAmountInput" class="amount-input" placeholder="0" inputmode="decimal" />
+        <div class="amount-input-wrap">
+          <span class="currency-symbol-label" id="loanCurrencySymbol">Rs.</span>
+          <input type="number" id="loanAmountInput" class="amount-input" placeholder="0" inputmode="decimal" />
+        </div>
+
+        <div class="loan-adjust-row">
+          <button type="button" class="loan-adjust-btn add" id="loanAddMoneyBtn" style="display:none;">+ Add Money</button>
+          <button type="button" class="loan-adjust-btn reduce" id="loanReduceMoneyBtn" style="display:none;">− Reduce Money</button>
+        </div>
+        <p class="loan-adjust-hint" id="loanAdjustHint" style="display:none;"></p>
+
+        <div class="form-group">
+          <label class="form-label">Saved Friends</label>
+          <div class="preset-chips" id="loanFriendChips"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Friend's Name</label>
+          <input type="text" id="loanPersonInput" class="form-input" placeholder="e.g. Ram, Sita, Anil..." maxlength="60" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Account / Wallet</label>
+          <select id="loanAccountSelect" class="account-select-native" tabindex="-1" aria-hidden="true">
+            <option value="Cash">Cash</option>
+          </select>
+          <button type="button" id="loanAccountPickerBtn" class="form-select account-picker-trigger" aria-haspopup="dialog" aria-controls="accountPickerDialog"></button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Note / Description</label>
+          <input type="text" id="loanNoteInput" class="form-input" placeholder="e.g. Dinner, bus tickets, emergency..." />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" id="loanDateInput" class="form-input" />
+        </div>
+
+        <button class="primary-btn" id="saveLoanBtn">Save To Pay</button>
+        <button class="delete-btn" id="deleteLoanBtn" style="display:none;">Delete Loan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPLIT BILL BOTTOM SHEET -->
+  <div class="modal-backdrop" id="splitModal">
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Split a Bill</h3>
+        <button class="icon-btn" id="closeSplitModalBtn" style="width:32px; height:32px;">✕</button>
       </div>
 
-      <div class="loan-adjust-row">
-        <button type="button" class="loan-adjust-btn add" id="loanAddMoneyBtn" style="display:none;">+ Add Money</button>
-        <button type="button" class="loan-adjust-btn reduce" id="loanReduceMoneyBtn" style="display:none;">− Reduce Money</button>
-      </div>
-      <p class="loan-adjust-hint" id="loanAdjustHint">Save this loan first to record repayments in its timeline.</p>
+      <div id="splitFormHome">
+        <div id="splitForm">
 
-      <div class="form-group">
-        <label class="form-label">Friend's Name</label>
-        <input type="text" id="loanPersonInput" class="form-input" placeholder="e.g. Ram, Sita, Anil..." maxlength="60" />
-      </div>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol-label" id="splitCurrencySymbol">Rs.</span>
+            <input type="number" id="splitAmountInput" class="amount-input" placeholder="0" inputmode="decimal" />
+          </div>
 
-      <div class="form-group">
-        <label class="form-label">Account / Wallet</label>
-        <select id="loanAccountSelect" class="account-select-native" tabindex="-1" aria-hidden="true">
-          <option value="Cash">Cash</option>
-        </select>
-        <button type="button" id="loanAccountPickerBtn" class="form-select account-picker-trigger" aria-haspopup="dialog" aria-controls="accountPickerDialog"></button>
-      </div>
+          <div class="form-group">
+            <label class="form-label">Friends</label>
+            <div class="preset-chips" id="splitFriendChips"></div>
+          </div>
 
-      <div class="form-group">
-        <label class="form-label">Note / Description</label>
-        <input type="text" id="loanNoteInput" class="form-input" placeholder="e.g. Dinner, bus tickets, emergency..." />
-      </div>
+          <div class="form-group" id="splitManualGroup">
+            <div class="split-amount-head">
+              <label class="form-label">Amount each friend owes</label>
+              <button type="button" class="split-even-btn" id="splitEqualBtn">Split evenly</button>
+            </div>
+            <div id="splitManualRows"></div>
+          </div>
 
-      <div class="form-group">
-        <label class="form-label">Date</label>
-        <input type="date" id="loanDateInput" class="form-input" />
-      </div>
+          <div class="split-preview" id="splitPreview"></div>
 
-      <button class="primary-btn" id="saveLoanBtn">Save To Pay</button>
-      <button class="delete-btn" id="deleteLoanBtn" style="display:none;">Delete Loan</button>
+          <div class="form-group">
+            <label class="form-label">Account / Wallet</label>
+            <select id="splitAccountSelect" class="account-select-native" tabindex="-1" aria-hidden="true">
+              <option value="Cash">Cash</option>
+            </select>
+            <button type="button" id="splitAccountPickerBtn" class="form-select account-picker-trigger" aria-haspopup="dialog" aria-controls="accountPickerDialog"></button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Note / Description</label>
+            <input type="text" id="splitNoteInput" class="form-input" placeholder="e.g. Dinner, bus tickets..." />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" id="splitDateInput" class="form-input" />
+          </div>
+
+          <button class="primary-btn" id="saveSplitBtn">Split Bill</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPLIT DETAIL BOTTOM SHEET -->
+  <div class="modal-backdrop" id="splitDetailModal">
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Split Bill</h3>
+        <button class="icon-btn" id="closeSplitDetailBtn" style="width:32px; height:32px;">✕</button>
+      </div>
+      <div id="splitDetailBody"></div>
+      <div class="detail-actions">
+        <button class="delete-btn" id="deleteSplitFromDetailBtn">Delete Split &amp; Loans</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE SPLIT CONFIRMATION -->
+  <div class="md-dialog-backdrop" id="deleteSplitDialog">
+    <div class="md-dialog-card">
+      <div class="dialog-icon-badge danger">✕</div>
+      <div class="dialog-title">Delete split?</div>
+      <div class="dialog-desc" id="deleteSplitDesc"></div>
+      <div class="dialog-actions">
+        <button class="dialog-btn tonal" id="cancelDeleteSplitBtn">Cancel</button>
+        <button class="dialog-btn danger" id="confirmDeleteSplitBtn">Delete</button>
+      </div>
     </div>
   </div>
 
@@ -481,7 +590,7 @@
         <button type="button" class="loan-adjust-btn reduce" id="loanDetailReduceBtn">− Reduce Money</button>
       </div>
       <div class="detail-actions">
-        <button class="primary-btn" id="editLoanFromDetailBtn">✏️ Edit</button>
+        <button class="primary-btn" id="editLoanFromDetailBtn">Edit</button>
         <button class="undo-btn" id="toggleLoanApprovalBtn">Approve</button>
         <button class="delete-btn" id="deleteLoanFromDetailBtn">Delete</button>
       </div>
@@ -509,6 +618,55 @@
       <div class="dialog-actions">
         <button class="dialog-btn tonal" id="cancelLoanAdjustBtn">Cancel</button>
         <button class="dialog-btn primary" id="loanAdjustConfirmBtn">Add money</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FRIENDS MANAGER SHEET -->
+  <div class="modal-backdrop" id="friendsSheet">
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Friends</h3>
+        <button class="icon-btn" id="closeFriendsBtn" style="width:32px; height:32px;">✕</button>
+      </div>
+
+      <button type="button" class="primary-btn friends-sheet-add" id="addFriendBtn">+ Add Friend</button>
+      <div class="loan-section-heading">
+        <h2 class="wallet-section-title">Saved friends</h2>
+        <span id="friendCount">0 saved</span>
+      </div>
+
+      <div id="friendList"></div>
+    </div>
+  </div>
+
+  <!-- ADD FRIEND DIALOG (MATERIAL 3) -->
+  <div class="md-dialog-backdrop" id="addFriendDialog">
+    <div class="md-dialog-card">
+      <div class="dialog-icon-badge primary">+</div>
+      <div class="dialog-title">Add Friend</div>
+      <div class="dialog-desc">Save a friend so you can split bills with them in one tap.</div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Friend's Name</label>
+        <input type="text" id="friendNameInput" class="form-input" placeholder="e.g. Ram, Sita, Anil..." maxlength="60" />
+      </div>
+      <div class="dialog-actions">
+        <button class="dialog-btn tonal" id="cancelAddFriendBtn">Cancel</button>
+        <button class="dialog-btn primary" id="saveFriendBtn">Add Friend</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE FRIEND CONFIRMATION DIALOG (MATERIAL 3) -->
+  <div class="md-dialog-backdrop" id="deleteFriendDialog">
+    <div class="md-dialog-card">
+      <div class="dialog-icon-badge danger">✕</div>
+      <div class="dialog-title">Remove friend?</div>
+      <div class="dialog-desc" id="deleteFriendDesc">Existing loans keep their recorded names.</div>
+      <div class="dialog-actions">
+        <button class="dialog-btn tonal" id="cancelDeleteFriendBtn">Cancel</button>
+        <button class="dialog-btn danger" id="confirmDeleteFriendBtn">Remove</button>
       </div>
     </div>
   </div>
@@ -693,6 +851,8 @@
   <script src="js/transactions.js"></script>
   <script src="js/account-picker.js"></script>
   <script src="js/loans.js"></script>
+  <script src="js/friends.js"></script>
+  <script src="js/split.js"></script>
   <script src="js/dialogs.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/data-tools.js"></script>

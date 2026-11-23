@@ -104,10 +104,20 @@ window.onAppResumeUnlocked = function() {
 };
 
 function initializeBiometricLock() {
-  // Always require a fresh fingerprint when the app opens.
-  if (state.settings.biometricLock !== false && isBiometricSupported()) {
+  const bridge = window.AndroidBridge;
+  const nativeRequiresLock = bridge && typeof bridge.shouldLockOnStart === 'function'
+    ? bridge.shouldLockOnStart()
+    : true;
+  const securityEnabled = state.settings.biometricLock !== false && isBiometricSupported();
+
+  if (securityEnabled && nativeRequiresLock) {
     lockApp();
     setTimeout(() => triggerBiometricAuth('unlock'), 350);
+  } else {
+    if (bridge && typeof bridge.setSessionUnlocked === 'function') {
+      bridge.setSessionUnlocked(true);
+    }
+    unlockApp();
   }
 
   // Refresh active session timestamp while user touches/interacts with app

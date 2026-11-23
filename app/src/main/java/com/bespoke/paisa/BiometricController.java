@@ -18,7 +18,8 @@ import org.json.JSONObject;
 
 final class BiometricController {
 
-    private static final long BIOMETRIC_TIMEOUT_MS = 5 * 60 * 1000L; // 5 minutes
+    private static final long BIOMETRIC_TIMEOUT_MS = 5 * 60 * 1000L;
+    private static final long WIDGET_TRUST_MS = 10 * 1000L;
 
     private final Activity activity;
     private final WebView webView;
@@ -27,6 +28,7 @@ final class BiometricController {
     private long lastActiveTimestamp;
     private boolean isSessionAuthenticated;
     private boolean shouldForceBiometricOnResume = false;
+    private long widgetTrustedUntil;
     private BroadcastReceiver screenReceiver;
 
     BiometricController(Activity activity, WebView webView, SharedPreferences prefs) {
@@ -147,12 +149,26 @@ final class BiometricController {
 
     boolean isSessionUnlocked() {
         if (!isBiometricSupported()) return true;
-        if (shouldForceBiometricOnResume) return false;
-        if (!isSessionAuthenticated) return false;
+        return !shouldLockOnStart();
+    }
+
+    boolean shouldLockOnStart() {
+        long now = System.currentTimeMillis();
+        if (now < widgetTrustedUntil) return false;
+        if (shouldForceBiometricOnResume) return true;
+        if (!isSessionAuthenticated) return true;
         KeyguardManager km = (KeyguardManager) activity.getSystemService(Context.KEYGUARD_SERVICE);
-        if (km != null && km.isKeyguardLocked()) return false;
-        long elapsed = System.currentTimeMillis() - lastActiveTimestamp;
-        return lastActiveTimestamp > 0 && elapsed >= 0 && elapsed < BIOMETRIC_TIMEOUT_MS;
+        if (km != null && km.isKeyguardLocked()) return true;
+        long elapsed = now - lastActiveTimestamp;
+        return lastActiveTimestamp <= 0 || elapsed < 0 || elapsed >= BIOMETRIC_TIMEOUT_MS;
+    }
+
+    void grantWidgetAccess() {
+        shouldForceBiometricOnResume = false;
+        isSessionAuthenticated = true;
+        widgetTrustedUntil = System.currentTimeMillis() + WIDGET_TRUST_MS;
+        lastActiveTimestamp = System.currentTimeMillis();
+        persistBiometricSession();
     }
 
     void setSessionUnlocked(boolean unlocked) {
@@ -239,21 +255,17 @@ final class BiometricController {
     }
 
     private void checkAndDispatchBiometricRequirement() {
-        KeyguardManager km = (KeyguardManager) activity.getSystemService(Context.KEYGUARD_SERVICE);
-        boolean isKeyguardLocked = (km != null && km.isKeyguardLocked());
-        long now = System.currentTimeMillis();
-        long elapsed = now - lastActiveTimestamp;
-        boolean timedOut = lastActiveTimestamp <= 0 || elapsed < 0 || elapsed >= BIOMETRIC_TIMEOUT_MS;
-
-        if (shouldForceBiometricOnResume || isKeyguardLocked || timedOut || !isSessionAuthenticated) {
-            shouldForceBiometricOnResume = false;
+        if (shouldLockOnStart()) {
             isSessionAuthenticated = false;
             persistBiometricSession();
             if (webView != null) {
                 webView.evaluateJavascript("if (window.onAppRequireLock) { window.onAppRequireLock(); }", null);
             }
         } else {
-            // Keep the session unlocked during the five-minute grace period.
+            isSessionAuthenticated = true;
+            lastActiveTimestamp = System.currentTimeMillis();
+            shouldForceBiometricOnResume = false;
+            persistBiometricSession();
             if (webView != null) {
                 webView.evaluateJavascript("if (window.onAppResumeUnlocked) { window.onAppResumeUnlocked(); }", null);
             }

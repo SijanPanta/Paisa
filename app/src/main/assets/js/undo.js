@@ -12,6 +12,8 @@ function recordUndo(label) {
     label,
     transactions: undoSnapshot(state.transactions),
     loans: undoSnapshot(state.loans),
+    splits: undoSnapshot(state.splits),
+    friends: undoSnapshot(state.friends),
     bankAccounts: undoSnapshot(state.bankAccounts)
   });
   if (undoStack.length > UNDO_LIMIT) undoStack.shift();
@@ -27,7 +29,7 @@ function requestUndo(label, action) {
   if (typeof action !== 'function') return;
   pendingUndoAction = action;
   document.getElementById('undoConfirmDesc').textContent =
-    `Undo "${label || 'last change'}"? Your previous transactions, loans and bank accounts will be restored.`;
+    `Undo "${label || 'last change'}"? Your previous transactions, loans, splits, friends and bank accounts will be restored.`;
   document.getElementById('undoConfirmDialog').classList.add('show');
 }
 
@@ -65,12 +67,17 @@ function undoLastAction() {
 
   state.transactions = entry.transactions;
   state.loans = entry.loans;
+  state.splits = entry.splits || [];
+  state.friends = entry.friends || [];
   state.bankAccounts = entry.bankAccounts;
   state.editingTxId = null;
   state.viewingTxId = null;
+  state.viewingSplitId = null;
   closeModal();
   closeLoanModal();
   closeLoanDetail();
+  closeSplitModal();
+  closeSplitDetailModal();
   closeDetailModal();
   saveState();
   updateUndoButton();

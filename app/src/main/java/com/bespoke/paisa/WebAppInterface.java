@@ -146,6 +146,11 @@ public final class WebAppInterface {
     }
 
     @JavascriptInterface
+    public boolean shouldLockOnStart() {
+        return biometricController.shouldLockOnStart();
+    }
+
+    @JavascriptInterface
     public void setSessionUnlocked(boolean unlocked) {
         biometricController.setSessionUnlocked(unlocked);
     }

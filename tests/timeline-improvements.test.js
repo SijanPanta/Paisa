@@ -9,7 +9,7 @@ function activate(app, element) {
   handler.call(element, {});
 }
 
-test('loan transactions are hidden from the main timeline behind a redirect', () => {
+test('approved loans appear in the main timeline without duplicating their linked transaction', () => {
   const app = createApp();
   app.state.loans.push({
     id: 'loan1', direction: 'receive', amount: 500, person: 'Sita',
@@ -27,15 +27,16 @@ test('loan transactions are hidden from the main timeline behind a redirect', ()
   app.start();
 
   const list = app.element('txListContainer');
-  assert.equal(list.querySelectorAll('.tx-row').length, 1);
+  assert.equal(list.querySelectorAll('.tx-row').length, 2);
   assert.match(list.textContent, /Lunch/);
-  assert.doesNotMatch(list.textContent, /Loan Received/);
-  assert.match(list.textContent, /Friend loans are tracked separately/);
+  assert.match(list.textContent, /Friend paid/);
+  assert.doesNotMatch(list.textContent, /Friend loans are tracked separately/);
   assert.equal(app.element('netBalanceVal').textContent, '400');
   assert.equal(list.querySelectorAll('.tx-amount.expense').length, 1);
+  assert.equal(list.querySelectorAll('.tx-amount.income').length, 1);
 
-  activate(app, list.querySelector('.tx-loan-redirect'));
-  assert.equal(app.element('viewLoans').classList.contains('active'), true);
+  activate(app, list.querySelector('.timeline-loan-card .tx-row'));
+  assert.equal(app.element('loanDetailModal').classList.contains('show'), true);
 });
 
 test('timeline history shows 20 transactions at a time and resets on filter changes', () => {

@@ -63,6 +63,7 @@ function openAddModalForWallet(walletId) {
 
 function openAddModal(type = 'expense', initialAccount = null) {
   nativeVibrate(25);
+  restoreTxFormHome();
   state.editingTxId = null;
   state.selectedType = type;
   state.selectedCat = type === 'income' ? DEFAULT_INCOME_CATEGORIES[0].id : DEFAULT_EXPENSE_CATEGORIES[0].id;
@@ -87,6 +88,7 @@ function openEditModal(txId) {
   const tx = state.transactions.find(t => t.id === txId);
   if (!tx) return;
 
+  restoreTxFormHome();
   state.editingTxId = txId;
   state.selectedType = tx.type;
   state.selectedCat = tx.categoryId || (tx.type === 'income' ? 'salary' : 'food');
@@ -105,6 +107,7 @@ function openEditModal(txId) {
 }
 
 function closeModal() {
+  restoreTxFormHome();
   document.getElementById('txModal').classList.remove('show');
 }
 

@@ -35,6 +35,8 @@ function handleFileRestore(e) {
           transactions: parsed.transactions || [],
           bankAccounts: parsed.bankAccounts || [],
           loans: parsed.loans || [],
+          splits: parsed.splits || [],
+          friends: parsed.friends || [],
           settings: Object.assign({
             currency: 'Rs.',
             budget: 35000,
@@ -45,6 +47,7 @@ function handleFileRestore(e) {
           searchQuery: '',
           editingTxId: null,
           viewingTxId: null,
+          viewingSplitId: null,
           selectedType: 'expense',
           selectedCat: 'food'
         };

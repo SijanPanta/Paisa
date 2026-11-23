@@ -40,10 +40,26 @@ public class MainActivity extends Activity {
         webView.setBackgroundColor(isDarkTheme(prefs) ? THEME_DARK_BG : THEME_LIGHT_BG);
         biometricController = new BiometricController(this, webView, prefs);
         fileFlowController = new FileFlowController(this);
-        setupWebView(prefs);
+        String widgetType = readWidgetType(getIntent());
+        if (widgetType != null) {
+            biometricController.grantWidgetAccess();
+        }
+        setupWebView(prefs, widgetType);
 
         biometricController.registerScreenLockReceiver();
         webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String type = readWidgetType(intent);
+        if (type != null) {
+            biometricController.grantWidgetAccess();
+            intent.removeExtra(NewTransactionWidget.EXTRA_TRANSACTION_TYPE);
+            openTransactionEditor(type);
+        }
     }
 
     private boolean isDarkTheme(SharedPreferences prefs) {
@@ -83,7 +99,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void setupWebView(SharedPreferences prefs) {
+    private void setupWebView(SharedPreferences prefs, final String pendingType) {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -94,10 +110,34 @@ public class MainActivity extends Activity {
         settings.setAllowUniversalAccessFromFileURLs(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
 
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                openTransactionEditor(pendingType);
+            }
+        });
         webView.setWebChromeClient(fileFlowController);
         webView.addJavascriptInterface(
             new WebAppInterface(this, prefs, biometricController, fileFlowController), "AndroidBridge");
+    }
+
+    private String readWidgetType(Intent intent) {
+        if (intent == null) return null;
+        return normalizeTransactionType(intent.getStringExtra(NewTransactionWidget.EXTRA_TRANSACTION_TYPE));
+    }
+
+    private String normalizeTransactionType(String type) {
+        if ("expense".equals(type) || "income".equals(type) || "transfer".equals(type)) {
+            return type;
+        }
+        return null;
+    }
+
+    private void openTransactionEditor(String type) {
+        String safeType = normalizeTransactionType(type);
+        if (safeType == null || webView == null) return;
+        webView.evaluateJavascript(
+            "if (typeof openAddModal === 'function') { openAddModal('" + safeType + "'); }", null);
     }
 
     @Override

@@ -10,6 +10,7 @@ function render() {
   renderAnalytics();
   renderWallets();
   renderLoans();
+  renderFriends();
   renderLoanDetail();
   renderSettings();
   updateUndoButton();
@@ -79,6 +80,148 @@ function showMoreTransactions() {
   renderTransactions();
 }
 
+function transactionTimelineHtml(t) {
+  const isExp = t.type === 'expense';
+  const isInc = t.type === 'income';
+  const isTransfer = t.type === 'transfer';
+  const sign = isExp ? '-' : isInc ? '+' : mi('swap_horiz');
+  const amtClass = isExp ? 'expense' : isInc ? 'income' : 'transfer';
+  const desc = t.note || t.categoryName || (isTransfer ? 'Transfer' : 'Transaction');
+  let subMeta = '';
+  if (isTransfer) {
+    subMeta = `<span class="tx-kind">Transfer</span><span class="wallet-tag">${escapeHtml(t.account)} ${mi('arrow_forward')} ${escapeHtml(t.toAccount)}</span>`;
+  } else {
+    const account = `<span class="wallet-tag">${escapeHtml(t.account || 'Cash')}</span>`;
+    const category = t.categoryName ? `<span class="tx-meta-cat">• ${escapeHtml(t.categoryName)}</span>` : '';
+    subMeta = account + category;
+  }
+
+  return `
+    <div class="tx-card">
+      <div class="tx-row" onclick="viewTransaction('${t.id}')">
+        <div class="tx-cat-icon ${amtClass}">${mi(categoryIconFor(t))}</div>
+        <div class="tx-details">
+          <div class="tx-title">${escapeHtml(desc)}</div>
+          <div class="tx-subtext">${subMeta}</div>
+        </div>
+        <div class="tx-amount ${amtClass}">
+          <span class="tx-sign">${sign}</span> ${formatCurrency(t.amount)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function splitTimelineHtml(split) {
+  const desc = split.note ? `Split bill · ${split.note}` : 'Split bill';
+  const friendsText = `${split.shareCount || (split.friendNames || []).length || 0} friends`;
+  return `
+    <div class="tx-card timeline-split-card">
+      <div class="tx-row" onclick="viewSplit('${split.id}')">
+        <div class="tx-cat-icon expense">${mi('receipt_long')}</div>
+        <div class="tx-details">
+          <div class="tx-title">${escapeHtml(desc)}</div>
+          <div class="tx-subtext"><span class="tx-kind">Split</span><span class="wallet-tag">${escapeHtml(split.account || 'Cash')}</span><span class="tx-meta-cat">• ${friendsText}</span></div>
+        </div>
+        <div class="tx-amount expense"><span class="tx-sign">-</span> ${formatCurrency(split.amount)}</div>
+      </div>
+      <button type="button" class="timeline-delete-btn" onclick="promptDeleteSplit('${split.id}')" aria-label="Delete split">✕</button>
+    </div>
+  `;
+}
+
+function approvedLoanTimelineHtml(loan) {
+  const isPay = loan.direction === 'pay';
+  const amtClass = isPay ? 'expense' : 'income';
+  const sign = isPay ? '-' : '+';
+  const kind = isPay ? 'Paid friend' : 'Friend paid';
+  const approvalTx = (state.transactions || []).find(tx => tx.id === loan.txId);
+  const desc = (approvalTx && approvalTx.note) || `${kind} · ${loan.person}`;
+  return `
+    <div class="tx-card timeline-loan-card">
+      <div class="tx-row" onclick="viewLoan('${loan.id}')">
+        <div class="tx-cat-icon ${amtClass}">${mi('payments')}</div>
+        <div class="tx-details">
+          <div class="tx-title">${escapeHtml(desc)}</div>
+          <div class="tx-subtext"><span class="tx-kind">${kind}</span><span class="wallet-tag">${escapeHtml(loan.account || 'Cash')}</span></div>
+        </div>
+        <div class="tx-amount ${amtClass}"><span class="tx-sign">${sign}</span> ${formatCurrency(loan.amount)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function buildTimelineItems() {
+  const items = [];
+
+  (state.transactions || []).forEach(tx => {
+    if (isLoanLinkedTransaction(tx) || (typeof isSplitShareTransaction === 'function' && isSplitShareTransaction(tx))) return;
+    items.push({
+      kind: 'tx',
+      id: tx.id,
+      tx,
+      date: tx.date,
+      time: tx.time,
+      account: tx.account,
+      toAccount: tx.toAccount,
+      searchText: [tx.note, tx.categoryName, tx.account, tx.toAccount, tx.type].filter(Boolean).join(' ').toLowerCase(),
+      html: transactionTimelineHtml(tx)
+    });
+  });
+
+  (state.splits || []).forEach(split => {
+    items.push({
+      kind: 'split',
+      id: split.id,
+      date: split.date,
+      time: split.time,
+      account: split.account,
+      searchText: ['split', split.note, split.account].concat(split.friendNames || []).filter(Boolean).join(' ').toLowerCase(),
+      html: splitTimelineHtml(split)
+    });
+  });
+
+  (state.loans || []).forEach(loan => {
+    if (!isLoanApproved(loan)) return;
+    const approvalTx = (state.transactions || []).find(tx => tx.id === loan.txId);
+    items.push({
+      kind: 'loan',
+      id: loan.id,
+      loan,
+      date: approvalTx ? approvalTx.date : loan.date,
+      time: approvalTx ? approvalTx.time : loan.time,
+      account: loan.account,
+      searchText: [loan.person, loan.note, loan.account, approvalTx && approvalTx.note].filter(Boolean).join(' ').toLowerCase(),
+      html: approvedLoanTimelineHtml(loan)
+    });
+  });
+
+  items.sort((a, b) => timelineItemSortValue(b) - timelineItemSortValue(a));
+  return items;
+}
+
+function timelineItemSortValue(item) {
+  const parsed = new Date(`${item.date || ''} ${item.time || '00:00'}`).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function timelineItemMatchesWallet(item, filter) {
+  if (filter === 'bank') {
+    return !!(item.account && isBankWallet(item.account)) || !!(item.toAccount && isBankWallet(item.toAccount));
+  }
+  const walletId = resolveWalletId(filter).toLowerCase();
+  return (!!item.account && resolveWalletId(item.account).toLowerCase() === walletId) ||
+    (!!item.toAccount && resolveWalletId(item.toAccount).toLowerCase() === walletId);
+}
+
+function timelineItemMatchesFilter(item, filter) {
+  if (filter === 'all') return true;
+  const lower = filter.toLowerCase();
+  if (lower === 'split') return item.kind === 'split';
+  if (lower === 'expense' || lower === 'income') return item.kind === 'tx' && item.tx.type === lower;
+  return timelineItemMatchesWallet(item, filter);
+}
+
 function renderTransactions() {
   const listEl = document.getElementById('txListContainer');
   const txKey = `${state.activeFilter}|${state.searchQuery}`;
@@ -86,104 +229,41 @@ function renderTransactions() {
     txVisibleCount = TX_PAGE_SIZE;
     lastTxKey = txKey;
   }
-  let txs = (state.transactions || []).filter(tx => !isLoanLinkedTransaction(tx));
 
-  // Filter by type or wallet
-  if (state.activeFilter !== 'all') {
-    const filterLower = state.activeFilter.toLowerCase();
-    if (filterLower === 'expense' || filterLower === 'income') {
-      txs = txs.filter(t => t.type === filterLower);
-    } else if (filterLower === 'bank') {
-      txs = txs.filter(t => isBankWallet(t.account) ||
-        (t.type === 'transfer' && isBankWallet(t.toAccount)));
-    } else {
-      const walletId = resolveWalletId(state.activeFilter).toLowerCase();
-      txs = txs.filter(t => (t.account && resolveWalletId(t.account).toLowerCase() === walletId) ||
-        (t.toAccount && resolveWalletId(t.toAccount).toLowerCase() === walletId));
-    }
-  }
-
-  // Filter by search query
   const q = state.searchQuery.trim().toLowerCase();
-  if (q) {
-    txs = txs.filter(t => 
-      (t.note && t.note.toLowerCase().includes(q)) ||
-      (t.categoryName && t.categoryName.toLowerCase().includes(q)) ||
-      (t.account && t.account.toLowerCase().includes(q))
-    );
-  }
+  const items = buildTimelineItems().filter(item =>
+    timelineItemMatchesFilter(item, state.activeFilter) && (!q || item.searchText.includes(q))
+  );
 
-  // Sort newest first
-  txs.sort((a, b) => new Date(b.date + ' ' + (b.time || '00:00')) - new Date(a.date + ' ' + (a.time || '00:00')));
-
-  const loanRedirectHtml = (state.loans || []).length ? `
-    <button type="button" class="tx-loan-redirect" onclick="switchTab('viewLoans')">
-      <span class="tx-loan-redirect-icon">${mi('payments')}</span>
-      <span class="tx-loan-redirect-copy">
-        <strong>Friend loans are tracked separately</strong>
-        <small>Open the loans balance sheet for approvals and repayments</small>
-      </span>
-      <span class="tx-loan-redirect-arrow">${mi('arrow_forward')}</span>
-    </button>
-  ` : '';
-
-  if (txs.length === 0) {
-    listEl.innerHTML = loanRedirectHtml + `
+  if (items.length === 0) {
+    const emptyTitle = state.activeFilter.toLowerCase() === 'split' ? 'No split bills found' : 'No transactions found';
+    listEl.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">${mi('receipt_long')}</div>
-        <h3>No transactions found</h3>
-        <p>Tap the <strong>+</strong> button below to record your first transaction.</p>
+        <h3>${emptyTitle}</h3>
       </div>
     `;
     return;
   }
 
-  const visibleTxs = txs.slice(0, txVisibleCount);
-
-  // Group by date
+  const visibleItems = items.slice(0, txVisibleCount);
   const groups = {};
-  visibleTxs.forEach(t => {
-    const dateKey = t.date || 'Unknown Date';
+  visibleItems.forEach(item => {
+    const dateKey = item.date || 'Unknown Date';
     if (!groups[dateKey]) groups[dateKey] = [];
-    groups[dateKey].push(t);
+    groups[dateKey].push(item);
   });
 
-  let html = loanRedirectHtml;
-  for (const [dateStr, items] of Object.entries(groups)) {
+  let html = '';
+  for (const [dateStr, groupItems] of Object.entries(groups)) {
     html += `<div class="tx-group-header"><span>${formatDateHeader(dateStr)}</span></div>`;
-    html += '<div class="tx-card">';
-    items.forEach(t => {
-      const isExp = t.type === 'expense';
-      const isInc = t.type === 'income';
-      const sign = isExp ? '-' : isInc ? '+' : mi('swap_horiz');
-      const amtClass = isExp ? 'expense' : isInc ? 'income' : 'transfer';
-
-      let desc = t.note || t.categoryName || 'Transaction';
-      let subMeta = '';
-      if (t.type === 'transfer') {
-        subMeta = `<span class="wallet-tag">${escapeHtml(t.account)} ${mi('arrow_forward')} ${escapeHtml(t.toAccount)}</span>`;
-      } else {
-        subMeta = `<span class="wallet-tag">${escapeHtml(t.account || 'Cash')}</span> ${t.categoryName ? '• ' + escapeHtml(t.categoryName) : ''}`;
-      }
-
-      html += `
-        <div class="tx-row" onclick="viewTransaction('${t.id}')">
-          <div class="tx-cat-icon">${mi(categoryIconFor(t))}</div>
-          <div class="tx-details">
-            <div class="tx-title">${escapeHtml(desc)}</div>
-            <div class="tx-subtext">${subMeta}</div>
-          </div>
-          <div class="tx-amount ${amtClass}">
-            ${sign} ${formatCurrency(t.amount)}
-          </div>
-        </div>
-      `;
-    });
+    html += '<div class="tx-group-items">';
+    groupItems.forEach(item => { html += item.html; });
     html += '</div>';
   }
 
-  if (txs.length > visibleTxs.length) {
-    html += `<button type="button" class="show-more-btn" onclick="showMoreTransactions()">Show more (${txs.length - visibleTxs.length} left)</button>`;
+  if (items.length > visibleItems.length) {
+    html += `<button type="button" class="show-more-btn" onclick="showMoreTransactions()">Show more (${items.length - visibleItems.length} left)</button>`;
   }
 
   listEl.innerHTML = html;
@@ -279,6 +359,7 @@ function renderFilterChips() {
     { id: 'all', label: 'All' },
     { id: 'expense', label: 'Expenses' },
     { id: 'income', label: 'Income' },
+    { id: 'split', label: 'Split' },
     { id: 'cash', label: 'Cash' },
     { id: 'esewa', label: 'eSewa' },
     { id: 'khalti', label: 'Khalti' },
@@ -294,7 +375,7 @@ function renderFilterChips() {
   let html = '';
   allFilters.forEach(f => {
     const isActive = (state.activeFilter.toLowerCase() === f.id.toLowerCase()) ? 'active' : '';
-    html += `<div class="pill-chip ${isActive}" data-filter="${escapeHtml(f.id)}">${escapeHtml(f.label)}</div>`;
+    html += `<div class="pill-chip ${isActive}" data-filter="${escapeHtml(f.id)}" role="button" tabindex="0">${escapeHtml(f.label)}</div>`;
   });
   row.innerHTML = html;
 
@@ -305,6 +386,12 @@ function renderFilterChips() {
       chip.classList.add('active');
       state.activeFilter = chip.dataset.filter;
       renderTransactions();
+    });
+    chip.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        if (event.preventDefault) event.preventDefault();
+        chip.click();
+      }
     });
   });
 }

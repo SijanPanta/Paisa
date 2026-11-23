@@ -3,12 +3,15 @@ let searchDebounceTimer = null;
 function initApp() {
   loadState();
   render();
+  initScrollLock();
   initializeBiometricLock();
   bindNavigationEvents();
   bindTransactionEvents();
   bindSearchEvents();
   bindWalletEvents();
   bindLoanEvents();
+  bindFriendEvents();
+  bindSplitEvents();
   bindSettingsEvents();
   bindCurrencyEvents();
   bindBudgetEvents();
@@ -50,6 +53,12 @@ function bindTransactionEvents() {
   document.querySelectorAll('.type-tab').forEach(el => {
     el.addEventListener('click', () => {
       nativeVibrate(15);
+      if (el.dataset.type === 'split') {
+        openSplitFromAction();
+        return;
+      }
+      restoreTxFormHome();
+      document.getElementById('sheetTitle').textContent = state.editingTxId ? 'Edit Transaction' : 'New Transaction';
       state.selectedType = el.dataset.type;
       updateModalTypeUI();
     });
@@ -165,9 +174,13 @@ function bindLoanEvents() {
   document.getElementById('loanPageToReceiveBtn').addEventListener('click', () => openLoanModal('receive'));
   document.getElementById('openLoansBtn').addEventListener('click', () => switchTab('viewLoans'));
 
-  document.querySelectorAll('.loan-direction-tab').forEach(tab => {
+  document.querySelectorAll('#loanDirectionSwitcher .loan-direction-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       nativeVibrate(15);
+      if (tab.dataset.direction === 'split') {
+        openLoanSplitTab();
+        return;
+      }
       setLoanDirection(tab.dataset.direction);
     });
   });
@@ -175,6 +188,10 @@ function bindLoanEvents() {
   document.getElementById('loanAccountPickerBtn').addEventListener('click', () => openAccountPicker('loanAccountSelect'));
   document.getElementById('closeLoanModalBtn').addEventListener('click', closeLoanModal);
   document.getElementById('saveLoanBtn').addEventListener('click', saveLoan);
+  document.getElementById('loanPersonInput').addEventListener('input', () => {
+    const friend = findFriendByName(document.getElementById('loanPersonInput').value);
+    renderLoanFriendChips(friend ? friend.id : null);
+  });
   document.getElementById('deleteLoanBtn').addEventListener('click', () => {
     if (editingLoanId) promptDeleteLoan(editingLoanId);
   });
@@ -228,6 +245,41 @@ function bindLoanEvents() {
   document.getElementById('confirmDeleteLoanBtn').addEventListener('click', confirmDeleteLoan);
 }
 
+function bindFriendEvents() {
+  document.getElementById('friendsBtn').addEventListener('click', openFriendsSheet);
+  document.getElementById('closeFriendsBtn').addEventListener('click', closeFriendsSheet);
+  document.getElementById('addFriendBtn').addEventListener('click', openAddFriendDialog);
+  document.getElementById('cancelAddFriendBtn').addEventListener('click', () => {
+    nativeVibrate(15);
+    closeAddFriendDialog();
+  });
+  document.getElementById('saveFriendBtn').addEventListener('click', saveFriend);
+  document.getElementById('friendNameInput').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      saveFriend();
+    }
+  });
+  document.getElementById('cancelDeleteFriendBtn').addEventListener('click', () => {
+    nativeVibrate(15);
+    closeDeleteFriendDialog();
+  });
+  document.getElementById('confirmDeleteFriendBtn').addEventListener('click', confirmDeleteFriend);
+}
+
+function bindSplitEvents() {
+  document.getElementById('splitBillBtn').addEventListener('click', openSplitModal);
+  document.getElementById('closeSplitModalBtn').addEventListener('click', closeSplitModal);
+  document.getElementById('splitEqualBtn').addEventListener('click', fillSplitEvenly);
+  document.getElementById('splitAmountInput').addEventListener('input', renderSplitPreview);
+  document.getElementById('splitAccountPickerBtn').addEventListener('click', () => openAccountPicker('splitAccountSelect'));
+  document.getElementById('saveSplitBtn').addEventListener('click', saveSplit);
+  document.getElementById('closeSplitDetailBtn').addEventListener('click', closeSplitDetailModal);
+  document.getElementById('deleteSplitFromDetailBtn').addEventListener('click', deleteSplitFromDetail);
+  document.getElementById('cancelDeleteSplitBtn').addEventListener('click', closeDeleteSplitDialog);
+  document.getElementById('confirmDeleteSplitBtn').addEventListener('click', confirmDeleteSplit);
+}
+
 function bindSettingsEvents() {
   // Reset Data Dialog (Material 3)
   document.getElementById('resetDataBtn').addEventListener('click', openResetDialog);
@@ -240,6 +292,8 @@ function bindSettingsEvents() {
     recordUndo('Clear all data');
     state.transactions = [];
     state.loans = [];
+    state.splits = [];
+    state.friends = [];
     saveState();
     closeResetDialog();
     render();
@@ -343,6 +397,9 @@ function bindDialogDismissalEvents() {
         if (backdrop.id === 'accountPickerDialog') closeAccountPicker();
         else if (backdrop.id === 'deleteBankDialog') closeDeleteBankDialog();
         else if (backdrop.id === 'loanAdjustDialog') closeLoanAdjustDialog();
+        else if (backdrop.id === 'addFriendDialog') closeAddFriendDialog();
+        else if (backdrop.id === 'deleteFriendDialog') closeDeleteFriendDialog();
+        else if (backdrop.id === 'deleteSplitDialog') closeDeleteSplitDialog();
         else if (backdrop.id === 'undoConfirmDialog') closeUndoConfirmDialog();
         else backdrop.classList.remove('show');
       }
@@ -367,6 +424,18 @@ function bindDialogDismissalEvents() {
   document.getElementById('loanDetailModal').addEventListener('click', (e) => {
     if (e.target === document.getElementById('loanDetailModal')) {
       closeLoanDetail();
+    }
+  });
+
+  document.getElementById('splitModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('splitModal')) {
+      closeSplitModal();
+    }
+  });
+
+  document.getElementById('splitDetailModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('splitDetailModal')) {
+      closeSplitDetailModal();
     }
   });
 }

@@ -3,7 +3,7 @@ let accountPickerTarget = null;
 function accountPickerWallets() {
   const wallets = getAllWallets();
   // Keep historical accounts selectable when editing records from a removed bank.
-  ['txAccountSelect', 'txToAccountSelect', 'loanAccountSelect'].forEach(id => {
+  ['txAccountSelect', 'txToAccountSelect', 'loanAccountSelect', 'splitAccountSelect'].forEach(id => {
     const select = document.getElementById(id);
     const value = select && select.value;
     if (value && !wallets.some(w => w.id === value)) {
@@ -18,7 +18,8 @@ function updateAccountPickerLabels() {
   const targets = [
     ['txAccountSelect', 'txAccountPickerBtn'],
     ['txToAccountSelect', 'txToAccountPickerBtn'],
-    ['loanAccountSelect', 'loanAccountPickerBtn']
+    ['loanAccountSelect', 'loanAccountPickerBtn'],
+    ['splitAccountSelect', 'splitAccountPickerBtn']
   ];
   targets.forEach(([selectId, buttonId]) => {
     const select = document.getElementById(selectId);
@@ -30,13 +31,15 @@ function updateAccountPickerLabels() {
 }
 
 function openAccountPicker(selectId) {
-  if (selectId !== 'txAccountSelect' && selectId !== 'txToAccountSelect' && selectId !== 'loanAccountSelect') return;
+  if (selectId !== 'txAccountSelect' && selectId !== 'txToAccountSelect' &&
+      selectId !== 'loanAccountSelect' && selectId !== 'splitAccountSelect') return;
   nativeVibrate(15);
   accountPickerTarget = selectId;
   const selected = document.getElementById(selectId).value;
   document.getElementById('accountPickerTitle').textContent = selectId === 'txToAccountSelect'
     ? 'To Account' : selectId === 'loanAccountSelect'
-      ? 'Loan Account / Wallet' : state.selectedType === 'transfer' ? 'From Account' : 'Account / Wallet';
+      ? 'Loan Account / Wallet' : selectId === 'splitAccountSelect'
+        ? 'Split Account / Wallet' : state.selectedType === 'transfer' ? 'From Account' : 'Account / Wallet';
   const wallets = accountPickerWallets();
   const option = wallet => `<button type="button" class="account-option${wallet.id === selected ? ' selected' : ''}" data-wallet="${escapeHtml(wallet.id)}" aria-pressed="${wallet.id === selected}" onclick="selectWalletAccount(this.dataset.wallet)"><span class="wallet-icon">${mi(wallet.icon)}</span><span class="account-option-name">${escapeHtml(wallet.name)}</span>${wallet.id === selected ? '<span class="account-option-selected">Selected</span>' : ''}</button>`;
   const regular = wallets.filter(w => !w.isBank);
@@ -53,7 +56,8 @@ function closeAccountPicker() {
   document.getElementById('accountPickerDialog').classList.remove('show');
   const buttonId = accountPickerTarget === 'txToAccountSelect'
     ? 'txToAccountPickerBtn' : accountPickerTarget === 'loanAccountSelect'
-      ? 'loanAccountPickerBtn' : 'txAccountPickerBtn';
+      ? 'loanAccountPickerBtn' : accountPickerTarget === 'splitAccountSelect'
+        ? 'splitAccountPickerBtn' : 'txAccountPickerBtn';
   accountPickerTarget = null;
   document.getElementById(buttonId).focus();
 }

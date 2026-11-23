@@ -12,6 +12,7 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { id: 'personal', name: 'Personal Care', icon: 'content_cut' },
   { id: 'travel', name: 'Travel & Trips', icon: 'flight' },
   { id: 'free_transfer', name: 'Free Transfer', icon: 'swap_horiz' },
+  { id: 'split_bill', name: 'Split Bill', icon: 'receipt_long' },
   { id: 'other_exp', name: 'Other', icon: 'auto_awesome' }
 ];
 
@@ -60,6 +61,8 @@ let state = {
   transactions: [],
   bankAccounts: [],
   loans: [],
+  splits: [],
+  friends: [],
   settings: {
     currency: 'Rs.',
     budget: 35000,
@@ -96,6 +99,8 @@ function loadState() {
       state.transactions = parsed.transactions || [];
       state.bankAccounts = parsed.bankAccounts || [];
       state.loans = parsed.loans || [];
+      state.splits = parsed.splits || [];
+      state.friends = parsed.friends || [];
       state.settings = Object.assign({
         currency: 'Rs.',
         budget: 35000,

@@ -59,7 +59,8 @@ test('clicking a loan opens its timeline and a repayment reduces the outstanding
   assert.match(bodyText(app), /Partial repayment/);
   assert.match(bodyText(app), /Rs\. 200/);
   assert.match(app.element('loanPayTotal').textContent, /Rs\. 0/);
-  assert.match(app.element('loanReceiveTotal').textContent, /Rs\. 300/);
+  assert.match(app.element('loanReceiveTotal').textContent, /Rs\. 0/);
+  assert.match(app.element('loanApprovedList').textContent, /Rs\. 300/);
 });
 
 test('add money from the edit sheet validates input, refuses negative balances and supports undo', () => {
@@ -116,7 +117,8 @@ test('saving after an edit-sheet adjustment does not reverse it or change the ap
   assert.equal(app.state.loans[0].adjustments[0].delta, 200);
   assert.equal(app.state.transactions[0].amount, 500);
   assert.equal(app.element('netBalanceVal').textContent, '500');
-  assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 700');
+  assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 0');
+  assert.match(app.element('loanApprovedList').textContent, /Rs\. 700/);
 });
 
 test('loan adjustments survive reload and backup restore and clear with all data', () => {

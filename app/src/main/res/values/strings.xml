@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Paisa</string>
+    <string name="widget_label">New Transaction</string>
+    <string name="widget_description">Quickly open the Paisa new transaction form.</string>
+    <string name="widget_title">New Transaction</string>
 </resources>

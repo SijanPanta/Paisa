@@ -24,8 +24,8 @@
   background: var(--surface);
   width: 100%;
   max-height: 90vh;
-  border-top-left-radius: 28px;
-  border-top-right-radius: 28px;
+  border-top-left-radius: var(--radius-sheet);
+  border-top-right-radius: var(--radius-sheet);
   padding: 12px 20px calc(24px + var(--safe-bottom));
   transform: translateY(100%);
   transition: transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1), background-color 0.22s ease;
@@ -60,10 +60,10 @@
   font-weight: 600;
 }
 
-/* Type Switcher: Expense / Income / Transfer */
+/* Type Switcher: Expense / Income / Transfer / Split */
 .type-switcher {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   background: var(--surface-variant);
   border-radius: 16px;
   padding: 4px;
@@ -96,7 +96,8 @@
   color: var(--income);
 }
 
-.type-tab.active.trf {
+.type-tab.active.trf,
+.type-tab.active.spl {
   color: var(--primary);
 }
 
@@ -135,11 +136,25 @@
   color: var(--income);
 }
 
+#loanDirectionSwitcher {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.loan-direction-tab.active.split {
+  color: var(--primary);
+}
+
 .loan-direction-hint {
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-muted);
   margin-bottom: 6px;
+}
+
+.loan-friend-empty {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
 }
 
 /* Big Amount Input */
@@ -256,21 +271,21 @@
 .primary-btn {
   width: 100%;
   padding: 15px;
-  border-radius: 18px;
+  border-radius: var(--radius-control);
   background: var(--primary);
-  color: #FFFFFF;
+  color: var(--on-primary);
   border: none;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(26,115,232,0.3);
-  transition: transform 0.1s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 3px 10px var(--fab-shadow);
+  transition: transform 0.1s ease, filter 0.15s ease;
   margin-top: 10px;
 }
 
 .primary-btn:active {
   transform: scale(0.98);
-  background: #1557B0;
+  filter: brightness(0.94);
 }
 
 .delete-btn {
