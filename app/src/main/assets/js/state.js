@@ -12,6 +12,7 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { id: 'personal', name: 'Personal Care', icon: 'content_cut' },
   { id: 'travel', name: 'Travel & Trips', icon: 'flight' },
   { id: 'free_transfer', name: 'Free Transfer', icon: 'swap_horiz' },
+  { id: 'loan_lend', name: 'Lent Money', icon: 'payments' },
   { id: 'split_bill', name: 'Split Bill', icon: 'receipt_long' },
   { id: 'other_exp', name: 'Other', icon: 'auto_awesome' }
 ];
@@ -30,7 +31,6 @@ const DEFAULT_WALLETS = [
   { id: 'eSewa', name: 'eSewa', icon: 'smartphone' },
   { id: 'Khalti', name: 'Khalti', icon: 'wallet' },
   { id: 'Bank', name: 'Bank Account', icon: 'account_balance' },
-  { id: 'ConnectIPS', name: 'ConnectIPS', icon: 'bolt' },
   { id: 'Savings', name: 'Savings', icon: 'savings' }
 ];
 

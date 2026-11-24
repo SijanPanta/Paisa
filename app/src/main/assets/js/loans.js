@@ -27,14 +27,15 @@ function loanAdjustments(loan) {
 
 function loanTimeline(loan) {
   const splitShares = Array.isArray(loan.splitShares) ? loan.splitShares : [];
+  const isLend = loan.kind === 'lend';
   const entries = [{
     id: 'origin_' + loan.id,
-    label: splitShares.length ? 'Split bill recorded' : LOAN_DIRECTIONS[loanDirectionOf(loan)].label + ' recorded',
+    label: isLend ? 'Money lent' : splitShares.length ? 'Split bill recorded' : LOAN_DIRECTIONS[loanDirectionOf(loan)].label + ' recorded',
     note: loan.note || '',
     date: loan.date,
     time: loan.time || '',
-    amount: splitShares.length ? 0 : loanOriginalAmount(loan),
-    kind: 'origin'
+    amount: isLend ? -loanOriginalAmount(loan) : splitShares.length ? 0 : loanOriginalAmount(loan),
+    kind: isLend ? 'reduce' : 'origin'
   }];
   if (isLoanApproved(loan)) {
     entries.push({
@@ -336,16 +337,18 @@ function restoreLoanForm() {
 
 function setLoanDirection(direction) {
   restoreLoanForm();
-  loanDirection = direction === 'receive' ? 'receive' : 'pay';
+  loanDirection = direction === 'receive' ? 'receive' : direction === 'lend' ? 'lend' : 'pay';
   setLoanTab(loanDirection);
-  document.getElementById('saveLoanBtn').textContent = `Save To ${loanDirection === 'pay' ? 'Pay' : 'Receive'}`;
+  document.getElementById('saveLoanBtn').textContent = loanDirection === 'lend'
+    ? 'Lend Money'
+    : `Save To ${loanDirection === 'pay' ? 'Pay' : 'Receive'}`;
 }
 
 function openLoanModal(direction = 'pay', loanId = null) {
   nativeVibrate(25);
   const loan = loanId ? (state.loans || []).find(item => item.id === loanId) : null;
   editingLoanId = loan ? loan.id : null;
-  setLoanDirection(loan ? loan.direction : direction);
+  setLoanDirection(loan ? (loan.kind === 'lend' ? 'lend' : loan.direction) : direction);
 
   document.getElementById('loanSheetTitle').textContent = loan ? 'Edit Loan' : 'New Friend Loan';
   document.getElementById('loanAmountInput').value = loan ? loan.amount : '';
@@ -374,7 +377,7 @@ function editLoan(loanId) {
   const loan = findLoan(loanId);
   if (!loan) return;
   closeLoanDetail();
-  openLoanModal(loanDirectionOf(loan), loan.id);
+  openLoanModal(loan.kind === 'lend' ? 'lend' : loanDirectionOf(loan), loan.id);
 }
 
 function saveLoan() {
@@ -395,19 +398,51 @@ function saveLoan() {
   const matchedFriend = findFriendByName(person);
   const now = new Date();
   const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isLend = loanDirection === 'lend';
+  const direction = isLend ? 'receive' : loanDirection;
+  const lendNote = note ? `Lent to ${person} · ${note}` : `Lent to ${person}`;
 
   if (!state.loans) state.loans = [];
   recordUndo(editingLoanId ? 'Edit loan' : 'Add loan');
   const loan = editingLoanId ? state.loans.find(item => item.id === editingLoanId) : null;
   if (loan) {
     const wasApproved = isLoanApproved(loan);
+    const wasLend = loan.kind === 'lend';
     const previousAmount = Number(loan.amount) || 0;
     const amountChanged = amount !== previousAmount;
     loan.originalAmount = loanOriginalAmount(loan);
     Object.assign(loan, {
-      direction: loanDirection, amount, person, account, note, date,
+      direction, amount, person, account, note, date,
       friendId: matchedFriend ? matchedFriend.id : null
     });
+
+    if (isLend && !wasLend) {
+      const lendTxId = 'tx_' + now.getTime() + '_' + Math.random().toString(36).substr(2, 5);
+      state.transactions.unshift({
+        id: lendTxId,
+        type: 'expense',
+        amount,
+        note: lendNote,
+        date,
+        time,
+        account,
+        toAccount: null,
+        categoryId: 'loan_lend',
+        categoryName: 'Lent Money',
+        categoryIcon: 'payments',
+        lendLoanId: loan.id
+      });
+      loan.kind = 'lend';
+      loan.lendTxId = lendTxId;
+    } else if (!isLend && wasLend) {
+      state.transactions = (state.transactions || []).filter(tx => tx.id !== loan.lendTxId);
+      delete loan.kind;
+      delete loan.lendTxId;
+    } else if (isLend && wasLend) {
+      const lendTx = (state.transactions || []).find(tx => tx.id === loan.lendTxId);
+      if (lendTx) Object.assign(lendTx, { amount, note: lendNote, date, time, account });
+    }
+
     if (amountChanged) {
       loan.adjustments = loanAdjustments(loan).concat([{
         id: 'adjust_' + now.getTime() + '_' + Math.random().toString(36).substr(2, 5),
@@ -418,11 +453,11 @@ function saveLoan() {
       }]);
     }
     if (wasApproved) {
-      const config = LOAN_DIRECTIONS[loanDirection];
+      const config = LOAN_DIRECTIONS[direction];
       const linked = (state.transactions || []).find(tx => tx.id === loan.txId || tx.loanId === loan.id);
       if (linked) {
         const linkedUpdate = {
-          type: loanDirection === 'pay' ? 'expense' : 'income',
+          type: direction === 'pay' ? 'expense' : 'income',
           account,
           note: `${config.label} · ${person}`,
           categoryId: config.categoryId,
@@ -435,9 +470,29 @@ function saveLoan() {
     }
     nativeToast('Updated loan');
   } else {
+    const loanId = 'loan_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    let lendTxId = null;
+    if (isLend) {
+      lendTxId = 'tx_' + now.getTime() + '_' + Math.random().toString(36).substr(2, 5);
+      state.transactions.unshift({
+        id: lendTxId,
+        type: 'expense',
+        amount,
+        note: lendNote,
+        date,
+        time,
+        account,
+        toAccount: null,
+        categoryId: 'loan_lend',
+        categoryName: 'Lent Money',
+        categoryIcon: 'payments',
+        lendLoanId: loanId
+      });
+    }
     state.loans.unshift({
-      id: 'loan_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-      direction: loanDirection,
+      id: loanId,
+      direction,
+      ...(isLend ? { kind: 'lend' } : {}),
       amount,
       originalAmount: amount,
       adjustments: [],
@@ -449,9 +504,12 @@ function saveLoan() {
       time,
       status: 'pending',
       txId: null,
+      lendTxId,
       createdAt: now.getTime()
     });
-    nativeToast(`Added ${LOAN_DIRECTIONS[loanDirection].label} ${formatCurrency(amount)}`);
+    nativeToast(isLend
+      ? `Lent ${formatCurrency(amount)} to ${person}`
+      : `Added ${LOAN_DIRECTIONS[direction].label} ${formatCurrency(amount)}`);
   }
 
   nativeVibrate(35);
@@ -543,9 +601,10 @@ function promptDeleteLoan(loanId) {
   if (!loan) return;
   nativeVibrate(20);
   pendingDeleteLoanId = loan.id;
+  const lendNote = loan.kind === 'lend' ? ' Its money-lent transaction will also be removed.' : '';
   document.getElementById('deleteLoanDesc').textContent = isLoanApproved(loan)
-    ? `Delete the ${formatCurrency(loan.amount)} loan with ${loan.person || 'your friend'}? Its linked transaction will also be removed, reversing the effect on Net Balance.`
-    : `Remove the ${formatCurrency(loan.amount)} loan with ${loan.person || 'your friend'} from your balance sheet?`;
+    ? `Delete the ${formatCurrency(loan.amount)} loan with ${loan.person || 'your friend'}? Its linked transaction will also be removed, reversing the effect on Net Balance.${lendNote}`
+    : `Remove the ${formatCurrency(loan.amount)} loan with ${loan.person || 'your friend'} from your balance sheet?${lendNote}`;
   document.getElementById('deleteLoanDialog').classList.add('show');
 }
 
@@ -562,7 +621,7 @@ function confirmDeleteLoan() {
   }
   recordUndo('Delete loan');
   state.transactions = state.transactions.filter(tx =>
-    tx.loanId !== loan.id && tx.id !== loan.txId);
+    tx.loanId !== loan.id && tx.lendLoanId !== loan.id && tx.id !== loan.txId && tx.id !== loan.lendTxId);
   state.loans = state.loans.filter(item => item.id !== loan.id);
   if (editingLoanId === loan.id) closeLoanModal();
   if (viewingLoanId === loan.id) closeLoanDetail();
@@ -575,11 +634,21 @@ function confirmDeleteLoan() {
 
 function unlinkDeletedLoanTransactions(ids) {
   const removed = ids instanceof Set ? ids : new Set(ids);
+  const removedLoanIds = [];
   (state.loans || []).forEach(loan => {
+    if (loan.kind === 'lend' && loan.lendTxId && removed.has(loan.lendTxId)) {
+      removedLoanIds.push(loan.id);
+      return;
+    }
     if (loan.txId && (removed.has(loan.txId) || removed.has(loan.id))) {
       loan.status = 'pending';
       loan.txId = null;
       loan.approvedAt = null;
     }
   });
+  if (removedLoanIds.length) {
+    state.transactions = (state.transactions || []).filter(tx =>
+      !removedLoanIds.includes(tx.loanId) && !removedLoanIds.includes(tx.lendLoanId));
+    state.loans = (state.loans || []).filter(loan => !removedLoanIds.includes(loan.id));
+  }
 }

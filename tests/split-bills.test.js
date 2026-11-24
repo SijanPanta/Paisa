@@ -194,7 +194,7 @@ test('split evenly button fills all friend amounts and no mode tabs exist', () =
   assert.equal(app.call('splitShares').myCents, 2000);
 });
 
-test('equal split records your share as an expense and each friend as a pending To Receive loan', () => {
+test('equal split records the full bill as an expense and each friend as a pending To Receive loan', () => {
   const app = splitApp();
   app.element('splitBillBtn').click();
   assert.equal(app.element('splitModal').classList.contains('show'), true);
@@ -212,11 +212,11 @@ test('equal split records your share as an expense and each friend as a pending 
   assert.equal(app.state.transactions.length, 1);
   const expense = app.state.transactions[0];
   assert.equal(expense.type, 'expense');
-  assert.equal(expense.amount, 20);
+  assert.equal(expense.amount, 100);
   assert.equal(expense.categoryId, 'split_bill');
   assert.equal(expense.categoryName, 'Split Bill');
   assert.equal(expense.account, 'Cash');
-  assert.match(expense.note, /your share/);
+  assert.match(expense.note, /Dinner/);
 
   assert.equal(app.state.loans.length, 4);
   app.state.loans.forEach(loan => {
@@ -235,8 +235,8 @@ test('equal split records your share as an expense and each friend as a pending 
   assert.match(detail, /Dinner/);
   app.call('closeLoanDetail');
 
-  assert.equal(app.element('totalExpenseVal').textContent, 'Rs. 20');
-  assert.equal(app.element('netBalanceVal').textContent, '-20');
+  assert.equal(app.element('totalExpenseVal').textContent, 'Rs. 100');
+  assert.equal(app.element('netBalanceVal').textContent, '-100');
   assert.equal(app.element('loanPayTotal').textContent, 'Rs. 0');
   assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 80');
   assert.equal(app.element('loanNetVal').textContent, 'Rs. 80');
@@ -252,7 +252,7 @@ test('equal split gives paisa remainder to the last friend and skips an empty sh
   app.element('splitEqualBtn').click();
   app.element('saveSplitBtn').click();
 
-  assert.equal(app.state.transactions[0].amount, 20);
+  assert.equal(app.state.transactions[0].amount, 100.01);
   assert.equal(app.state.loans.length, 4);
   const lastFriend = app.state.friends[app.state.friends.length - 1];
   const lastLoan = app.state.loans.find(loan => loan.friendId === lastFriend.id);
@@ -275,7 +275,7 @@ test('manual split uses entered shares, leaves the remainder as your expense and
   assert.match(app.element('splitPreview').textContent, /Rs\. 40/);
 
   app.element('saveSplitBtn').click();
-  assert.equal(app.state.transactions[0].amount, 40);
+  assert.equal(app.state.transactions[0].amount, 100);
   assert.equal(app.state.loans.map(loan => loan.amount).sort().join(','), '10,15,15,20');
   assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 60');
 
@@ -296,7 +296,7 @@ test('manual split uses entered shares, leaves the remainder as your expense and
   assert.match(second.calls.alerts.at(-1), /exceed the bill/i);
 });
 
-test('Me chip can be turned off so no expense is added and only friends receive the split', () => {
+test('Me chip can be turned off so the full bill is still expensed and friends receive the split', () => {
   const app = splitApp();
   app.call('openSplitModal');
 
@@ -312,11 +312,12 @@ test('Me chip can be turned off so no expense is added and only friends receive 
   assert.equal(app.element('splitPreview').textContent.includes('You · your share'), false);
   app.element('saveSplitBtn').click();
 
-  assert.equal(app.state.transactions.length, 0);
+  assert.equal(app.state.transactions.length, 1);
+  assert.equal(app.state.transactions[0].amount, 90);
   assert.equal(app.state.loans.length, 3);
   assert.equal(app.state.loans.reduce((sum, loan) => sum + loan.amount, 0), 90);
   app.state.loans.forEach(loan => assert.equal(loan.amount, 30));
-  assert.equal(app.element('totalExpenseVal').textContent, 'Rs. 0');
+  assert.equal(app.element('totalExpenseVal').textContent, 'Rs. 90');
   assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 90');
 });
 
@@ -393,7 +394,7 @@ test('split validation, wallet choice, undo, back navigation and restore work to
   assert.equal(app.state.loans[0].account, 'eSewa');
   assert.equal(app.state.loans[0].amount, 25);
   assert.match(app.state.loans[0].note, /Pizza/);
-  assert.equal(app.call('getWalletSummary').balances.eSewa, -25);
+  assert.equal(app.call('getWalletSummary').balances.eSewa, -50);
 
   app.call('undoLastAction');
   assert.equal(app.state.transactions.length, 0);
@@ -412,4 +413,42 @@ test('split validation, wallet choice, undo, back navigation and restore work to
   assert.equal(reloaded.state.friends.length, 4);
   reloaded.restore(JSON.stringify({ transactions: [], loans: [], settings: reloaded.state.settings }));
   assert.equal(reloaded.state.friends.length, 0);
+});
+
+test('split 200 between 4 from eSewa: full bill leaves wallet, share is annotated, and approval returns friend amounts', () => {
+  const app = splitApp();
+  app.element('splitBillBtn').click();
+  app.element('splitAccountPickerBtn').click();
+  app.call('selectWalletAccount', 'eSewa');
+
+  app.call('toggleSplitFriend', app.state.friends[3].id);
+  app.element('splitAmountInput').value = '200';
+  app.element('splitNoteInput').value = 'Dinner';
+  app.element('splitEqualBtn').click();
+  app.element('saveSplitBtn').click();
+
+  assert.equal(app.state.transactions.length, 1);
+  assert.equal(app.state.transactions[0].type, 'expense');
+  assert.equal(app.state.transactions[0].amount, 200);
+  assert.equal(app.state.transactions[0].account, 'eSewa');
+  assert.equal(app.call('getWalletSummary').balances.eSewa, -200);
+  assert.equal(app.element('netBalanceVal').textContent, '-200');
+  assert.equal(app.element('totalExpenseVal').textContent, 'Rs. 200');
+
+  assert.equal(app.state.loans.length, 3);
+  assert.ok(app.state.loans.every(loan => loan.direction === 'receive' && loan.amount === 50 && loan.status === 'pending'));
+  assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 150');
+
+  const card = app.element('txListContainer').querySelector('.timeline-split-card');
+  assert.match(card.querySelector('.tx-amount').textContent, /Rs\. 200/);
+  assert.match(card.querySelector('.split-share-note').textContent, /Rs\. 50 your share/);
+
+  app.state.loans.forEach(loan => {
+    app.call('approveLoan', loan.id);
+    app.element('confirmApproveLoanBtn').click();
+  });
+
+  assert.equal(app.call('getWalletSummary').balances.eSewa, -50);
+  assert.equal(app.element('netBalanceVal').textContent, '-50');
+  assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 0');
 });

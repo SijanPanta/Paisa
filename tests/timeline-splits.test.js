@@ -44,7 +44,7 @@ test('saved splits appear in the main timeline and can be filtered', () => {
   assert.equal(list.querySelectorAll('.timeline-split-card').length, 1);
   assert.match(list.textContent, /Split bill · Dinner/);
   assert.match(list.textContent, /4 friends/);
-  assert.doesNotMatch(list.textContent, /your share/);
+  assert.match(list.textContent, /your share/);
 
   const splitChip = app.document.querySelector('#typeFilterRow .pill-chip[data-filter="split"]');
   assert.ok(splitChip);

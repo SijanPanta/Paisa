@@ -123,7 +123,7 @@ function splitTimelineHtml(split) {
           <div class="tx-title">${escapeHtml(desc)}</div>
           <div class="tx-subtext"><span class="tx-kind">Split</span><span class="wallet-tag">${escapeHtml(split.account || 'Cash')}</span><span class="tx-meta-cat">• ${friendsText}</span></div>
         </div>
-        <div class="tx-amount expense"><span class="tx-sign">-</span> ${formatCurrency(split.amount)}</div>
+        <div class="tx-amount expense"><span class="tx-sign">-</span> ${formatCurrency(split.amount)}${Number(split.myAmount) > 0 ? `<span class="split-share-note">(${formatCurrency(split.myAmount)} your share)</span>` : ''}</div>
       </div>
       <button type="button" class="timeline-delete-btn" onclick="promptDeleteSplit('${split.id}')" aria-label="Delete split">✕</button>
     </div>

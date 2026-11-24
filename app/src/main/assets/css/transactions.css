@@ -136,8 +136,12 @@
   color: var(--income);
 }
 
+.loan-direction-tab.active.lend {
+  color: var(--expense);
+}
+
 #loanDirectionSwitcher {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .loan-direction-tab.active.split {

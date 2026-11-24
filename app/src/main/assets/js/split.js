@@ -261,24 +261,21 @@ function saveSplit() {
 
   recordUndo('Split bill');
 
-  let expenseTxId = null;
-  if (result.myCents > 0) {
-    expenseTxId = 'tx_' + stamp + '_' + Math.random().toString(36).substr(2, 5);
-    state.transactions.unshift({
-      id: expenseTxId,
-      type: 'expense',
-      amount: result.myCents / 100,
-      note: `${label} · your share`,
-      date,
-      time,
-      account,
-      toAccount: null,
-      categoryId: 'split_bill',
-      categoryName: 'Split Bill',
-      categoryIcon: 'receipt_long',
-      splitId
-    });
-  }
+  const expenseTxId = 'tx_' + stamp + '_' + Math.random().toString(36).substr(2, 5);
+  state.transactions.unshift({
+    id: expenseTxId,
+    type: 'expense',
+    amount: result.total,
+    note: label,
+    date,
+    time,
+    account,
+    toAccount: null,
+    categoryId: 'split_bill',
+    categoryName: 'Split Bill',
+    categoryIcon: 'receipt_long',
+    splitId
+  });
 
   if (!state.splits) state.splits = [];
   const split = {

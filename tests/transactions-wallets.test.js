@@ -108,7 +108,7 @@ test('missing transaction IDs and delete without selection are harmless', () => 
 
 test('custom banks validate names, appear in wallets/selects/filters and delete with their history', () => {
   const app = createApp();
-  assert.deepEqual(Array.from(app.call('getAllWallets'), wallet => wallet.id), ['Cash', 'eSewa', 'Khalti', 'Bank', 'ConnectIPS', 'Savings']);
+  assert.deepEqual(Array.from(app.call('getAllWallets'), wallet => wallet.id), ['Cash', 'eSewa', 'Khalti', 'Bank', 'Savings']);
   app.call('openAddBankDialog');
   for (const name of ['  ', 'cash', ' BANK ACCOUNT ']) {
     app.element('bankNameInput').value = name;
@@ -119,7 +119,7 @@ test('custom banks validate names, appear in wallets/selects/filters and delete 
   app.call('saveNewBank');
   assert.equal(app.state.bankAccounts[0].id, 'Nabil & Co');
   assert.equal(app.state.bankAccounts[0].isBank, true);
-  assert.equal(app.call('getAllWallets').length, 7);
+  assert.equal(app.call('getAllWallets').length, 6);
   assert.doesNotMatch(app.element('walletsContainer').innerHTML, /Nabil &amp; Co/);
   assert.match(app.element('bankAccountsContainer').innerHTML, /Nabil &amp; Co/);
   assert.ok(app.document.querySelector('#typeFilterRow .pill-chip[data-filter="nabil & co"]'));
@@ -159,4 +159,21 @@ test('transfers affect both wallet balances/counts, but not total income or expe
   assert.match(cards[0].querySelector('.wallet-count').textContent, /3 transactions/);
   assert.equal(cards[1].querySelector('.wallet-balance').textContent, 'Rs. 250');
   assert.equal(app.element('savingsRateVal').textContent, '90%');
+});
+
+test('transfers into Savings stay out of Net balance and total expense', () => {
+  const app = createApp();
+  app.state.transactions = [
+    { id: 'i', type: 'income', amount: 1000, account: 'eSewa', date: '2026-01-15', categoryName: 'Salary' },
+    { id: 't', type: 'transfer', amount: 300, account: 'eSewa', toAccount: 'Savings', date: '2026-01-15' }
+  ];
+  app.call('render');
+
+  assert.equal(app.element('netBalanceVal').textContent, '1,000');
+  assert.equal(app.element('totalIncomeVal').textContent, 'Rs. 1,000');
+  assert.equal(app.element('totalExpenseVal').textContent, 'Rs. 0');
+
+  const summary = app.call('getWalletSummary');
+  assert.equal(summary.balances.eSewa, 700);
+  assert.equal(summary.balances.Savings, 300);
 });

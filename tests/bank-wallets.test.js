@@ -37,7 +37,7 @@ function activate(app, element) {
 test('main wallets show one combined Bank Account, not individual banks or bank management', () => {
   const app = bankApp();
   const cards = app.element('walletsContainer').querySelectorAll('.wallet-card');
-  assert.deepEqual(cards.map(el => el.dataset.wallet), ['Cash', 'eSewa', 'Khalti', 'Bank', 'ConnectIPS', 'Savings']);
+  assert.deepEqual(cards.map(el => el.dataset.wallet), ['Cash', 'eSewa', 'Khalti', 'Bank', 'Savings']);
   assert.equal(card(app, 'walletsContainer', 'Bank').querySelector('.wallet-balance').textContent, 'Rs. 1,600');
   assert.match(card(app, 'walletsContainer', 'Bank').textContent, /8 transactions/);
   assert.doesNotMatch(app.element('walletsOverview').textContent, /Nabil Bank|NIC Asia|Add Bank/);

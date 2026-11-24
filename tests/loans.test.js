@@ -264,3 +264,126 @@ test('loans tab navigation, FAB and hardware back work with the loan editor', ()
   assert.equal(app.element('approveLoanDialog').classList.contains('show'), false);
   assert.equal(app.element('netBalanceVal').textContent, '0');
 });
+
+test('lend tab records money out as an expense and creates a pending receive loan', () => {
+  const app = loanApp();
+  app.element('openLoansBtn').click();
+  app.element('fabAddBtn').click();
+
+  const lendTab = app.document.querySelector('#loanDirectionSwitcher .loan-direction-tab[data-direction="lend"]');
+  assert.equal(lendTab.textContent.trim(), 'Lend');
+  lendTab.click();
+  assert.equal(lendTab.classList.contains('active'), true);
+  assert.equal(app.element('saveLoanBtn').textContent, 'Lend Money');
+
+  app.element('loanAmountInput').value = '1000';
+  app.element('loanPersonInput').value = 'Ram';
+  app.element('loanNoteInput').value = 'Emergency';
+  app.call('renderLoanAccountSelect', 'eSewa');
+  app.element('saveLoanBtn').click();
+
+  assert.equal(app.state.loans.length, 1);
+  const loan = app.state.loans[0];
+  assert.equal(loan.direction, 'receive');
+  assert.equal(loan.kind, 'lend');
+  assert.equal(loan.amount, 1000);
+  assert.equal(loan.status, 'pending');
+  assert.equal(loan.txId, null);
+  assert.ok(loan.lendTxId);
+
+  assert.equal(app.state.transactions.length, 1);
+  const expense = app.state.transactions[0];
+  assert.equal(expense.type, 'expense');
+  assert.equal(expense.amount, 1000);
+  assert.equal(expense.account, 'eSewa');
+  assert.equal(expense.categoryId, 'loan_lend');
+  assert.equal(expense.categoryName, 'Lent Money');
+  assert.equal(expense.lendLoanId, loan.id);
+  assert.match(expense.note, /Lent to Ram/);
+  assert.match(expense.note, /Emergency/);
+
+  assert.equal(app.call('getWalletSummary').balances.eSewa, -1000);
+  assert.equal(app.element('netBalanceVal').textContent, '-1,000');
+  assert.equal(app.element('totalExpenseVal').textContent, 'Rs. 1,000');
+  assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 1,000');
+  assert.equal(app.element('loanPendingList').querySelectorAll('.loan-card').length, 1);
+  assert.equal(app.element('loanNavBadge').textContent, '1');
+
+  const list = app.element('txListContainer');
+  assert.match(list.textContent, /Lent to Ram/);
+  assert.equal(list.querySelectorAll('.timeline-loan-card').length, 0);
+});
+
+test('approving a lend loan returns the money as income and keeps the original expense', () => {
+  const app = loanApp();
+  const loan = addLoan(app, { direction: 'lend', amount: 1000, person: 'Ram' });
+
+  app.call('approveLoan', loan.id);
+  assert.match(app.element('approveLoanDesc').textContent, /owed by Ram/);
+  app.element('confirmApproveLoanBtn').click();
+
+  assert.equal(app.state.loans[0].status, 'approved');
+  assert.equal(app.state.transactions.length, 2);
+  const income = app.state.transactions.find(tx => tx.id === loan.txId);
+  assert.equal(income.type, 'income');
+  assert.equal(income.amount, 1000);
+  assert.equal(income.loanId, loan.id);
+  assert.equal(app.call('getWalletSummary').balances.Cash, 0);
+  assert.equal(app.element('netBalanceVal').textContent, '0');
+  assert.equal(app.element('loanApprovedList').querySelectorAll('.loan-card').length, 1);
+  assert.equal(app.element('loanPendingList').querySelectorAll('.loan-card').length, 0);
+
+  app.call('viewLoan', loan.id);
+  const detail = app.element('loanDetailBody').textContent;
+  assert.match(detail, /Money lent/);
+  assert.match(detail, /Approved into Net Balance/);
+});
+
+test('deleting a lend loan removes both the loan and its money-out transaction', () => {
+  const app = loanApp();
+  const loan = addLoan(app, { direction: 'lend', amount: 1000, person: 'Ram' });
+
+  app.call('promptDeleteLoan', loan.id);
+  assert.match(app.element('deleteLoanDesc').textContent, /money-lent transaction/);
+  app.element('confirmDeleteLoanBtn').click();
+
+  assert.equal(app.state.loans.length, 0);
+  assert.equal(app.state.transactions.length, 0);
+  assert.equal(app.call('getWalletSummary').balances.Cash, 0);
+  assert.equal(app.element('netBalanceVal').textContent, '0');
+});
+
+test('deleting the money-out transaction directly also removes its lend loan', () => {
+  const app = loanApp();
+  const loan = addLoan(app, { direction: 'lend', amount: 1000, person: 'Ram' });
+  approve(app, loan.id);
+
+  const expense = app.state.transactions.find(tx => tx.id === loan.lendTxId);
+  app.call('viewTransaction', expense.id);
+  app.element('deleteTxFromDetailBtn').click();
+  app.element('confirmDeleteTxBtn').click();
+
+  assert.equal(app.state.loans.length, 0);
+  assert.equal(app.state.transactions.length, 0);
+  assert.equal(app.element('netBalanceVal').textContent, '0');
+});
+
+test('editing a lend loan syncs the money-out transaction and reopening shows the Lend tab', () => {
+  const app = loanApp();
+  const loan = addLoan(app, { direction: 'lend', amount: 1000, person: 'Ram' });
+
+  app.call('editLoan', loan.id);
+  assert.equal(app.document.querySelector('#loanDirectionSwitcher .loan-direction-tab.active').dataset.direction, 'lend');
+  assert.equal(app.element('saveLoanBtn').textContent, 'Lend Money');
+  app.element('loanAmountInput').value = '1200';
+  app.call('renderLoanAccountSelect', 'Khalti');
+  app.element('saveLoanBtn').click();
+
+  assert.equal(app.state.loans[0].amount, 1200);
+  assert.equal(app.state.loans[0].direction, 'receive');
+  assert.equal(app.state.loans[0].kind, 'lend');
+  assert.equal(app.state.transactions.length, 1);
+  assert.equal(app.state.transactions[0].amount, 1200);
+  assert.equal(app.state.transactions[0].account, 'Khalti');
+  assert.equal(app.call('getWalletSummary').balances.Khalti, -1200);
+});
