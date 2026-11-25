@@ -317,6 +317,21 @@ function bindSettingsEvents() {
     }
     triggerBiometricAuth('toggle');
   });
+
+  document.getElementById('setDailyReminderItem').addEventListener('click', () => {
+    nativeVibrate(20);
+    state.settings.dailySpendReminder = !state.settings.dailySpendReminder;
+    try {
+      if (window.AndroidBridge && window.AndroidBridge.setDailySpendReminderEnabled) {
+        window.AndroidBridge.setDailySpendReminderEnabled(state.settings.dailySpendReminder);
+      }
+    } catch (e) {
+      console.error('Daily reminder toggle failed:', e);
+    }
+    saveState();
+    renderSettings();
+    nativeToast(state.settings.dailySpendReminder ? 'Daily reminder enabled for 5:30 PM' : 'Daily reminder disabled');
+  });
 }
 
 function bindCurrencyEvents() {

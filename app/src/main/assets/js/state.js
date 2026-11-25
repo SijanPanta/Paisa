@@ -68,6 +68,7 @@ let state = {
     budget: 35000,
     haptics: true,
     biometricLock: true,
+    dailySpendReminder: false,
     theme: 'light'
   },
   isLocked: false,
@@ -106,6 +107,7 @@ function loadState() {
         budget: 35000,
         haptics: true,
         biometricLock: true,
+        dailySpendReminder: false,
         theme: 'light'
       }, parsed.settings || {});
     } catch (e) {

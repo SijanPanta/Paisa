@@ -147,11 +147,6 @@ final class BiometricController {
         });
     }
 
-    boolean isSessionUnlocked() {
-        if (!isBiometricSupported()) return true;
-        return !shouldLockOnStart();
-    }
-
     boolean shouldLockOnStart() {
         long now = System.currentTimeMillis();
         if (now < widgetTrustedUntil) return false;

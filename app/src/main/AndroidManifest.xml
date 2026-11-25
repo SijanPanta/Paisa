@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -40,6 +42,15 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/new_transaction_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".DailySpendReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.bespoke.paisa.action.DAILY_SPEND" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
         </receiver>
     </application>
 </manifest>

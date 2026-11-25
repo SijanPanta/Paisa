@@ -428,4 +428,9 @@ function renderSettings() {
       bioItem.style.opacity = '1';
     }
   }
+
+  const dailyVal = document.getElementById('settingDailyReminderVal');
+  if (dailyVal) {
+    dailyVal.textContent = state.settings.dailySpendReminder ? 'Enabled' : 'Disabled';
+  }
 }

@@ -15,7 +15,7 @@ test('loadState merges old settings with defaults without restoring session/UI s
   assert.deepEqual(plain(app.state.transactions), [{ id: 'old' }]);
   assert.equal(app.state.bankAccounts[0].name, 'Nabil');
   assert.deepEqual(plain(app.state.settings), {
-    currency: '$', budget: 0, haptics: false, biometricLock: true, theme: 'light'
+    currency: '$', budget: 0, haptics: false, biometricLock: true, dailySpendReminder: false, theme: 'light'
   });
   assert.equal(app.state.isLocked, false);
   assert.equal(app.state.activeFilter, 'all');

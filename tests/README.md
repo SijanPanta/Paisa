@@ -39,10 +39,7 @@ Coverage includes:
 - Ordered local scripts, local script/style/image and CSS `url()` existence, retained globals,
   and compilation/global function resolution for static and representative rendered handlers.
 
-`baseline-globals.json` records the function/callback names inspected in
-`build/refactor-baseline/index.html`. The two retired no-op lifecycle callbacks
-are intentionally omitted. Tests do not require that temporary baseline file at runtime.
-The removed `WALLETS` constant must remain absent; `initApp` must be available.
+`baseline-globals.json` records the function/callback names that the frontend contract keeps available as globals. The two retired no-op lifecycle callbacks are intentionally omitted. The removed `WALLETS` constant must remain absent; `initApp` must be available.
 
 `frontend-fixture.js` deliberately implements only the DOM surface this app uses:
 HTML elements, descendant/id/class/equality-attribute selectors, classList,
@@ -79,7 +76,4 @@ normally, so a missing DOM ID or cross-script global fails a behavioral test.
    containing quotes are not escaped consistently. Import hardening and CSV formula
    injection defenses are outside the behavior-preserving extraction tests.
 
-The old inline startup also adds a second filter listener after `renderFilterChips`.
-The single-listener regression test intentionally fails until that duplication is removed
-in the frontend extraction. The ordered-script/global tests likewise require the extracted
-frontend rather than the old monolithic HTML.
+The frontend contract enforces the extracted structure: ordered local scripts, no inline startup script, one filter listener per live chip, and required global callbacks/functions still resolvable from static/rendered handlers.

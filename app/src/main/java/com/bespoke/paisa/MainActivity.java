@@ -47,6 +47,10 @@ public class MainActivity extends Activity {
         setupWebView(prefs, widgetType);
 
         biometricController.registerScreenLockReceiver();
+        if (DailySpendReceiver.isReminderEnabled(this)) {
+            DailySpendScheduler.schedule(this);
+            requestNotificationPermissionIfNeeded();
+        }
         webView.loadUrl("file:///android_asset/index.html");
     }
 
@@ -162,6 +166,14 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         biometricController.onDestroy();
+    }
+
+    void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 2001);
+        }
     }
 
     @Override

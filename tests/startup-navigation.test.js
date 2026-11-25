@@ -11,7 +11,7 @@ function biometricApp({ supported = true, unlocked = false, enabled = true } = {
     storage: { paisa_state: JSON.stringify({ settings: { biometricLock: enabled } }) },
     bridge: {
       isBiometricSupported: () => supported,
-      isSessionUnlocked: () => unlocked,
+      shouldLockOnStart: () => !unlocked,
       authenticateBiometric: (...args) => auth.push(args),
       refreshActiveTimestamp: () => touches++
     }
@@ -21,7 +21,7 @@ function biometricApp({ supported = true, unlocked = false, enabled = true } = {
 
 for (const [label, options, shouldLock] of [
   ['supported, expired session', {}, true],
-  ['supported, current session', { unlocked: true }, true],
+  ['supported, current session', { unlocked: true }, false],
   ['unsupported device', { supported: false }, false],
   ['lock disabled', { enabled: false }, false]
 ]) {
@@ -211,4 +211,28 @@ test('bound controls support search, type switching, detail actions, settings an
   assert.equal(app.state.transactions.length, 1);
   app.element('confirmResetBtn').click();
   assert.equal(app.state.transactions.length, 0);
+});
+
+test('daily spend reminder setting toggles, persists and notifies native bridge', () => {
+  const calls = [];
+  const app = createApp({
+    bridge: {
+      isBiometricSupported: () => false,
+      setDailySpendReminderEnabled: enabled => calls.push(enabled)
+    }
+  });
+  app.start();
+  assert.equal(app.state.settings.dailySpendReminder, false);
+  assert.equal(app.element('settingDailyReminderVal').textContent, 'Disabled');
+
+  app.element('setDailyReminderItem').click();
+  assert.equal(app.state.settings.dailySpendReminder, true);
+  assert.equal(app.element('settingDailyReminderVal').textContent, 'Enabled');
+  assert.deepEqual(calls, [true]);
+  assert.equal(JSON.parse(app.storage.get('paisa_state')).settings.dailySpendReminder, true);
+
+  app.element('setDailyReminderItem').click();
+  assert.equal(app.state.settings.dailySpendReminder, false);
+  assert.equal(app.element('settingDailyReminderVal').textContent, 'Disabled');
+  assert.deepEqual(calls, [true, false]);
 });

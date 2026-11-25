@@ -141,11 +141,6 @@ public final class WebAppInterface {
     }
 
     @JavascriptInterface
-    public boolean isSessionUnlocked() {
-        return biometricController.isSessionUnlocked();
-    }
-
-    @JavascriptInterface
     public boolean shouldLockOnStart() {
         return biometricController.shouldLockOnStart();
     }
@@ -158,5 +153,17 @@ public final class WebAppInterface {
     @JavascriptInterface
     public void refreshActiveTimestamp() {
         biometricController.refreshActiveTimestamp();
+    }
+
+    @JavascriptInterface
+    public void setDailySpendReminderEnabled(boolean enabled) {
+        if (enabled) {
+            DailySpendScheduler.schedule(activity);
+            if (activity instanceof MainActivity) {
+                activity.runOnUiThread(((MainActivity) activity)::requestNotificationPermissionIfNeeded);
+            }
+        } else {
+            DailySpendScheduler.cancel(activity);
+        }
     }
 }

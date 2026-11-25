@@ -6,16 +6,21 @@ const { createApp } = require('./frontend-fixture');
 
 function sessionBridge() {
   let authenticated = true;
+  let requiresLock = true;
   let prompts = 0;
-  return {
+  const bridge = {
     isBiometricSupported: () => true,
-    shouldLockOnStart: () => true,
-    isSessionUnlocked: () => authenticated,
-    setSessionUnlocked: value => { authenticated = value; },
+    shouldLockOnStart: () => requiresLock,
+    setSessionUnlocked: value => {
+      authenticated = value;
+      requiresLock = !value;
+    },
     authenticateBiometric: () => { prompts++; },
     refreshActiveTimestamp() {},
-    get prompts() { return prompts; }
+    get prompts() { return prompts; },
+    get sessionUnlocked() { return authenticated; }
   };
+  return bridge;
 }
 
 test('cancelling a fresh unlock invalidates the previous session across resume and recreation', () => {
@@ -23,15 +28,15 @@ test('cancelling a fresh unlock invalidates the previous session across resume a
   const app = createApp({ bridge });
   app.start();
   app.flushTimers();
-  assert.equal(bridge.isSessionUnlocked(), false, 'showing the lock must revoke the previous session');
+  assert.equal(bridge.sessionUnlocked, false, 'showing the lock must revoke the previous session');
   assert.equal(bridge.prompts, 1);
 
   app.call('onBiometricError', 'Authentication cancelled', 10, 'unlock');
   app.touch();
   assert.equal(app.state.isLocked, true);
-  assert.equal(bridge.isSessionUnlocked(), false);
+  assert.equal(bridge.sessionUnlocked, false);
 
-  app.call(bridge.isSessionUnlocked() ? 'onAppResumeUnlocked' : 'onAppRequireLock');
+  app.call(bridge.sessionUnlocked ? 'onAppResumeUnlocked' : 'onAppRequireLock');
   app.flushTimers();
   assert.equal(app.state.isLocked, true, 'resuming after cancellation must not expose the app');
   assert.equal(bridge.prompts, 2);
@@ -40,7 +45,7 @@ test('cancelling a fresh unlock invalidates the previous session across resume a
   recreated.start();
   recreated.flushTimers();
   assert.equal(recreated.state.isLocked, true);
-  assert.equal(bridge.isSessionUnlocked(), false);
+  assert.equal(bridge.sessionUnlocked, false);
   assert.equal(bridge.prompts, 3);
 
   bridge.setSessionUnlocked(true);
@@ -68,7 +73,6 @@ test('widget/trusted start skips the fingerprint prompt and keeps the app unlock
   const bridge = {
     isBiometricSupported: () => true,
     shouldLockOnStart: () => false,
-    isSessionUnlocked: () => true,
     setSessionUnlocked: value => { if (value) unlockedCalls++; },
     authenticateBiometric: () => { throw new Error('widget must not prompt'); },
     refreshActiveTimestamp() {}
@@ -84,10 +88,11 @@ test('widget/trusted start skips the fingerprint prompt and keeps the app unlock
 
 test('cancelling security-setting verification preserves the existing unlocked session', () => {
   const bridge = sessionBridge();
+  bridge.setSessionUnlocked(true);
   const app = createApp({ bridge });
   app.call('triggerBiometricAuth', 'toggle');
   app.call('onBiometricError', 'Authentication cancelled', 10, 'toggle');
-  assert.equal(bridge.isSessionUnlocked(), true);
+  assert.equal(bridge.sessionUnlocked, true);
   assert.equal(app.state.isLocked, false);
   assert.equal(app.state.settings.biometricLock, true);
 });
