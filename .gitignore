@@ -1,6 +1,6 @@
 # Machine-specific SDK location (set sdk.dir=/path/to/android-sdk here instead)
 local.properties
-
+AGENTS.md
 # Build outputs
 build/
 Paisa-debug.apk
@@ -14,3 +14,6 @@ Paisa-debug.apk.idsig
 # OS files
 .DS_Store
 Thumbs.db
+
+.env
+opencode.json

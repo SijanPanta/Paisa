@@ -106,8 +106,8 @@
         <button type="button" class="loan-notice-btn" id="openLoansBtn" aria-label="Open loans balance sheet">
           <span class="loan-notice-icon"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M560-440q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM280-320q-33 0-56.5-23.5T200-400v-320q0-33 23.5-56.5T280-800h560q33 0 56.5 23.5T920-720v320q0 33-23.5 56.5T840-320H280Zm80-80h400q0-33 23.5-56.5T840-480v-160q-33 0-56.5-23.5T760-720H360q0 33-23.5 56.5T280-640v160q33 0 56.5 23.5T360-400Zm400 240H120q-33 0-56.5-23.5T40-240v-400q0-17 11.5-28.5T80-680q17 0 28.5 11.5T120-640v400h640q17 0 28.5 11.5T800-200q0 17-11.5 28.5T760-160ZM280-400v-320 320Z"/></svg></span>
           <span class="loan-notice-copy">
-            <strong>Pending loans</strong>
-            <small id="loanHeroHint"></small>
+            <strong>Pending loans <small id="loanHeroHint"></small></strong>
+            <small id="loanHeroCollect" style="display:none;"></small>
           </span>
           <span class="loan-notice-action">Review <svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M647-440H200q-17 0-28.5-11.5T160-480q0-17 11.5-28.5T200-520h447L451-716q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l264 264q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L508-188q-11 11-27.5 11T452-188q-12-12-12-28.5t12-28.5l195-195Z"/></svg></span>
         </button>
@@ -207,6 +207,7 @@
       <div class="loan-action-row">
         <button type="button" class="loan-quick-btn pay" id="loanPageToPayBtn">↗ To Pay</button>
         <button type="button" class="loan-quick-btn receive" id="loanPageToReceiveBtn">↙ To Receive</button>
+        <button type="button" class="loan-quick-btn lend" id="loanPageLendBtn">Lend Money</button>
         <button type="button" class="loan-quick-btn split" id="splitBillBtn" title="Split Bill">Split</button>
       </div>
 
@@ -322,7 +323,7 @@
     </div>
     <div class="nav-item" data-target="viewLoans">
       <div class="nav-icon-wrap"><span id="loanNavBadge" class="loan-nav-badge" style="display:none;">0</span><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M200-200v-560 560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v100h-80v-100H200v560h560v-100h80v100q0 33-23.5 56.5T760-120H200Zm320-160q-33 0-56.5-23.5T440-360v-240q0-33 23.5-56.5T520-680h280q33 0 56.5 23.5T880-600v240q0 33-23.5 56.5T800-280H520Zm280-80v-240H520v240h280Zm-117.5-77.5Q700-455 700-480t-17.5-42.5Q665-540 640-540t-42.5 17.5Q580-505 580-480t17.5 42.5Q615-420 640-420t42.5-17.5Z"/></svg></div>
-      <span class="nav-label">Loans</span>
+      <span class="nav-label">Loans/Split</span>
     </div>
     <div class="nav-item" data-target="viewSettings">
       <div class="nav-icon-wrap"><svg class="mi" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M433-80q-27 0-46.5-18T363-142l-9-66q-13-5-24.5-12T307-235l-62 26q-25 11-50 2t-39-32l-47-82q-14-23-8-49t27-43l53-40q-1-7-1-13.5v-27q0-6.5 1-13.5l-53-40q-21-17-27-43t8-49l47-82q14-23 39-32t50 2l62 26q11-8 23-15t24-12l9-66q4-26 23.5-44t46.5-18h94q27 0 46.5 18t23.5 44l9 66q13 5 24.5 12t22.5 15l62-26q25-11 50-2t39 32l47 82q14 23 8 49t-27 43l-53 40q1 7 1 13.5v27q0 6.5-2 13.5l53 40q21 17 27 43t-8 49l-48 82q-14 23-39 32t-50-2l-60-26q-11 8-23 15t-24 12l-9 66q-4 26-23.5 44T527-80h-94Zm7-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/></svg></div>
@@ -559,7 +560,7 @@
       </div>
       <div id="splitDetailBody"></div>
       <div class="detail-actions">
-        <button class="delete-btn" id="deleteSplitFromDetailBtn">Delete Split &amp; Loans</button>
+        <button class="delete-btn" id="deleteSplitFromDetailBtn">Delete Split</button>
       </div>
     </div>
   </div>

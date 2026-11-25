@@ -77,7 +77,7 @@ function switchTab(viewId) {
     'viewHome': 'Paisa',
     'viewAnalytics': 'Insights',
     'viewWallets': 'Wallets',
-    'viewLoans': 'Loans',
+    'viewLoans': 'Loans/Split',
     'viewSettings': 'Settings'
   };
   document.getElementById('pageTitle').textContent = titleMap[viewId] || 'Paisa';

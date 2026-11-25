@@ -3,6 +3,14 @@ const TX_PAGE_SIZE = 20;
 let txVisibleCount = TX_PAGE_SIZE;
 let lastTxKey = null;
 
+function isSavingsAccount(account) {
+  return resolveWalletId(account) === 'Savings';
+}
+
+function isSavingsDeposit(tx) {
+  return !!(tx && tx.type === 'transfer' && isSavingsAccount(tx.toAccount));
+}
+
 function render() {
   renderHeaderAndHero();
   renderFilterChips();
@@ -31,10 +39,15 @@ function renderHeaderAndHero() {
 
   state.transactions.forEach(t => {
     const val = Number(t.amount) || 0;
-    if (t.type === 'income') totalInc += val;
-    else if (t.type === 'expense') {
+    if (t.type === 'income') {
+      if (!isSavingsAccount(t.account)) totalInc += val;
+    } else if (t.type === 'expense') {
+      if (isSavingsAccount(t.account)) return;
       totalExp += val;
       if (!isNonSpendExpense(t)) totalSpent += val;
+    } else if (isSavingsDeposit(t)) {
+      totalExp += val;
+      totalSpent += val;
     }
   });
 
@@ -46,7 +59,8 @@ function renderHeaderAndHero() {
   // Monthly Budget Calculation
   let monthExpenses = 0;
   state.transactions.forEach(t => {
-    if (t.type === 'expense' && !isNonSpendExpense(t)) {
+    const spends = (t.type === 'expense' && !isSavingsAccount(t.account) && !isNonSpendExpense(t)) || isSavingsDeposit(t);
+    if (spends) {
       const d = new Date(t.date);
       if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
         monthExpenses += Number(t.amount) || 0;
@@ -125,7 +139,6 @@ function splitTimelineHtml(split) {
         </div>
         <div class="tx-amount expense"><span class="tx-sign">-</span> ${formatCurrency(split.amount)}${Number(split.myAmount) > 0 ? `<span class="split-share-note">(${formatCurrency(split.myAmount)} your share)</span>` : ''}</div>
       </div>
-      <button type="button" class="timeline-delete-btn" onclick="promptDeleteSplit('${split.id}')" aria-label="Delete split">✕</button>
     </div>
   `;
 }
@@ -281,12 +294,15 @@ function renderAnalytics() {
   state.transactions.forEach(t => {
     const amt = Number(t.amount) || 0;
     if (t.type === 'expense') {
-      if (isNonSpendExpense(t)) return;
+      if (isNonSpendExpense(t) || isSavingsAccount(t.account)) return;
       totalSpent += amt;
       const key = t.categoryName || 'Other';
       catTotals[key] = (catTotals[key] || 0) + amt;
     } else if (t.type === 'income') {
-      totalInc += amt;
+      if (!isSavingsAccount(t.account)) totalInc += amt;
+    } else if (isSavingsDeposit(t)) {
+      totalSpent += amt;
+      catTotals['Savings Transfer'] = (catTotals['Savings Transfer'] || 0) + amt;
     }
   });
 

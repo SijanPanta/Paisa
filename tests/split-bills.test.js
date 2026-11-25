@@ -241,7 +241,8 @@ test('equal split records the full bill as an expense and each friend as a pendi
   assert.equal(app.element('loanReceiveTotal').textContent, 'Rs. 80');
   assert.equal(app.element('loanNetVal').textContent, 'Rs. 80');
   assert.equal(app.element('loanNavBadge').textContent, '4');
-  assert.equal(app.element('loanHeroHint').textContent, '4');
+  assert.equal(app.element('loanHeroHint').textContent, '(4)');
+  assert.equal(app.element('loanHeroCollect').textContent, 'Rs. 80 to collect');
   assert.equal(app.element('splitModal').classList.contains('show'), false);
 });
 

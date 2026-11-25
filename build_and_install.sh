@@ -157,8 +157,35 @@ echo "=================================================="
 echo " BUILD SUCCESSFUL! APK: $FINAL_APK"
 echo "=================================================="
 
+send_apk_to_telegram() {
+    if [[ -f "$SCRIPT_DIR/.env" ]]; then
+        set -a
+        . "$SCRIPT_DIR/.env"
+        set +a
+    fi
+    if [[ -z "${TELEGRAM_BOT_TOKEN:-}" || -z "${TELEGRAM_CHAT_ID:-}" ]]; then
+        echo "==> No Telegram credentials found; install manually with:  adb install -r Paisa-debug.apk"
+        return 0
+    fi
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "==> curl not found; install the APK manually on your phone."
+        return 0
+    fi
+    echo "==> Sending APK to Telegram..."
+    local response
+    response="$(curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+        -F "chat_id=${TELEGRAM_CHAT_ID}" \
+        -F "document=@${FINAL_APK}" \
+        -F "caption=Paisa debug APK" || true)"
+    if [[ "$response" == *'"ok":true'* ]]; then
+        echo "==> APK sent to Telegram."
+    else
+        echo "==> Telegram upload failed: $response"
+    fi
+}
+
 if command -v adb &>/dev/null; then
-    DEVICE=$(adb devices | grep -w "device" | awk '{print $1}' | head -n 1)
+    DEVICE=$(adb devices | grep -w "device" | awk '{print $1}' | head -n 1 || true)
     if [[ -n "$DEVICE" ]]; then
         echo "==> Installing to device $DEVICE..."
         adb -s "$DEVICE" install -r "$FINAL_APK"
@@ -166,8 +193,10 @@ if command -v adb &>/dev/null; then
         adb -s "$DEVICE" shell am start -n com.bespoke.paisa/.MainActivity
         echo "==> App running on device!"
     else
-        echo "==> No device attached. Install manually with:  adb install -r Paisa-debug.apk"
+        echo "==> No device attached."
+        send_apk_to_telegram
     fi
 else
-    echo "==> adb not found. Install the APK manually on your phone."
+    echo "==> adb not found."
+    send_apk_to_telegram
 fi

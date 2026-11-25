@@ -108,14 +108,28 @@ function getLoanSummary() {
 function renderLoanHeroHint() {
   const el = document.getElementById('loanHeroHint');
   if (!el) return;
+  const collectEl = document.getElementById('loanHeroCollect');
   const notice = document.getElementById('loanNotice');
   const summary = getLoanSummary();
   if (!summary.pendingCount) {
     el.textContent = '';
+    if (collectEl) {
+      collectEl.textContent = '';
+      collectEl.style.display = 'none';
+    }
     if (notice) notice.style.display = 'none';
     return;
   }
-  el.textContent = String(summary.pendingCount);
+  el.textContent = `(${String(summary.pendingCount)})`;
+  if (collectEl) {
+    if (summary.receive.pending > 0) {
+      collectEl.textContent = `${formatCurrency(summary.receive.pending)} to collect`;
+      collectEl.style.display = '';
+    } else {
+      collectEl.textContent = '';
+      collectEl.style.display = 'none';
+    }
+  }
   if (notice) notice.style.display = 'flex';
 }
 

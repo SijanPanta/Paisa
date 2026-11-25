@@ -172,6 +172,7 @@ function bindWalletEvents() {
 function bindLoanEvents() {
   document.getElementById('loanPageToPayBtn').addEventListener('click', () => openLoanModal('pay'));
   document.getElementById('loanPageToReceiveBtn').addEventListener('click', () => openLoanModal('receive'));
+  document.getElementById('loanPageLendBtn').addEventListener('click', () => openLoanModal('lend'));
   document.getElementById('openLoansBtn').addEventListener('click', () => switchTab('viewLoans'));
 
   document.querySelectorAll('#loanDirectionSwitcher .loan-direction-tab').forEach(tab => {

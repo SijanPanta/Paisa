@@ -337,7 +337,7 @@
 
 .loan-action-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -536,6 +536,12 @@
   background: var(--income-bg);
   border-color: var(--income);
   color: var(--income);
+}
+
+.loan-quick-btn.lend {
+  background: var(--expense-bg);
+  border-color: var(--expense);
+  color: var(--expense);
 }
 
 .loan-quick-btn:active {
@@ -785,41 +791,12 @@
   margin-bottom: 10px;
 }
 
-.timeline-split-card,
-.timeline-loan-card {
-  position: relative;
-}
-
-.timeline-split-card .tx-row {
-  padding-right: 48px;
-}
-
 .split-share-note {
   display: block;
   font-size: 11px;
   font-weight: 500;
   opacity: 0.72;
   white-space: nowrap;
-}
-
-.timeline-delete-btn {
-  position: absolute;
-  right: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface-variant-subtle);
-  color: var(--text-muted);
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.timeline-delete-btn:active {
-  background: var(--surface-variant);
-  color: var(--text-main);
 }
 
 .timeline-loan-card .tx-kind {

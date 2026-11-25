@@ -57,7 +57,7 @@ test('saved splits appear in the main timeline and can be filtered', () => {
   assert.equal(app.element('txListContainer').querySelectorAll('.timeline-split-card').length, 1);
 });
 
-test('deleting a split from the timeline removes its loans and approval transactions, with undo', () => {
+test('deleting a split from its detail removes its loans and approval transactions, with undo', () => {
   const app = splitApp();
 
   app.call('openSplitFromAction');
@@ -75,8 +75,12 @@ test('deleting a split from the timeline removes its loans and approval transact
   let list = app.element('txListContainer');
   assert.equal(list.querySelectorAll('.timeline-split-card').length, 1);
   assert.equal(list.querySelectorAll('.timeline-loan-card').length, 1);
+  assert.equal(list.querySelector('.timeline-delete-btn'), null);
 
-  activateInline(app, list.querySelector('.timeline-delete-btn'));
+  activateInline(app, list.querySelector('.timeline-split-card .tx-row'));
+  assert.equal(app.element('splitDetailModal').classList.contains('show'), true);
+  assert.equal(app.element('deleteSplitFromDetailBtn').textContent, 'Delete Split');
+  app.element('deleteSplitFromDetailBtn').click();
   assert.equal(app.element('deleteSplitDialog').classList.contains('show'), true);
   assert.match(app.element('deleteSplitDesc').textContent, /4 linked loans/);
 
@@ -189,6 +193,7 @@ test('split detail opens from the timeline and exposes the delete action', () =>
   const row = app.element('txListContainer').querySelector('.timeline-split-card .tx-row');
   activateInline(app, row);
   assert.equal(app.element('splitDetailModal').classList.contains('show'), true);
+  assert.equal(app.element('deleteSplitFromDetailBtn').textContent, 'Delete Split');
   assert.match(app.element('splitDetailBody').textContent, /Bus/);
   assert.match(app.element('splitDetailBody').textContent, /Ram/);
 

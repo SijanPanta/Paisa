@@ -57,6 +57,18 @@ test('main timeline redirects to loans, whose page buttons open the matching for
   assert.equal(app.element('loanModal').classList.contains('show'), false);
 });
 
+test('loans page lend shortcut opens the Lend form and main timeline has no lend button', () => {
+  const app = loanApp();
+  assert.equal(app.document.getElementById('homeLendBtn'), null);
+  assert.equal(app.element('viewHome').classList.contains('active'), true);
+
+  app.element('openLoansBtn').click();
+  app.element('loanPageLendBtn').click();
+  assert.equal(app.element('loanModal').classList.contains('show'), true);
+  assert.equal(app.document.querySelector('#loanDirectionSwitcher .loan-direction-tab.active').dataset.direction, 'lend');
+  assert.equal(app.element('saveLoanBtn').textContent, 'Lend Money');
+});
+
 test('new loan sheet offers saved friends and links the selected friend', () => {
   const app = loanApp();
   app.element('addFriendBtn').click();
@@ -94,7 +106,9 @@ test('pending loans stay off Net Balance and have their own balance sheet', () =
   assert.equal(app.element('loanPendingList').querySelectorAll('.loan-card').length, 2);
   assert.equal(app.element('loanApprovedList').querySelectorAll('.loan-card').length, 0);
   assert.equal(app.element('loanNavBadge').textContent, '2');
-  assert.equal(app.element('loanHeroHint').textContent, '2');
+  assert.equal(app.element('loanHeroHint').textContent, '(2)');
+  assert.equal(app.element('loanHeroCollect').textContent, 'Rs. 800 to collect');
+  assert.equal(app.element('loanHeroCollect').style.display, '');
 
   const rows = app.element('loanPendingList').querySelectorAll('.loan-card');
   assert.match(rows[0].textContent, /Sita/);
@@ -239,7 +253,8 @@ test('loans tab navigation, FAB and hardware back work with the loan editor', ()
   const app = loanApp();
   app.element('openLoansBtn').click();
   assert.equal(app.element('viewLoans').classList.contains('active'), true);
-  assert.equal(app.element('pageTitle').textContent, 'Loans');
+  assert.equal(app.element('pageTitle').textContent, 'Loans/Split');
+  assert.equal(app.document.querySelector('.nav-item[data-target="viewLoans"] .nav-label').textContent, 'Loans/Split');
 
   app.element('fabAddBtn').click();
   assert.equal(app.element('loanModal').classList.contains('show'), true);

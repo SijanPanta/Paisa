@@ -161,11 +161,31 @@ test('transfers affect both wallet balances/counts, but not total income or expe
   assert.equal(app.element('savingsRateVal').textContent, '90%');
 });
 
-test('transfers into Savings stay out of Net balance and total expense', () => {
+test('transfers into Savings act as expense and reduce Net balance', () => {
   const app = createApp();
   app.state.transactions = [
     { id: 'i', type: 'income', amount: 1000, account: 'eSewa', date: '2026-01-15', categoryName: 'Salary' },
     { id: 't', type: 'transfer', amount: 300, account: 'eSewa', toAccount: 'Savings', date: '2026-01-15' }
+  ];
+  app.call('render');
+
+  assert.equal(app.element('netBalanceVal').textContent, '700');
+  assert.equal(app.element('totalIncomeVal').textContent, 'Rs. 1,000');
+  assert.equal(app.element('totalExpenseVal').textContent, 'Rs. 300');
+  assert.equal(app.element('savingsRateVal').textContent, '70%');
+  assert.match(app.element('analyticsCatBreakdown').textContent, /Savings Transfer/);
+
+  const summary = app.call('getWalletSummary');
+  assert.equal(summary.balances.eSewa, 700);
+  assert.equal(summary.balances.Savings, 300);
+});
+
+test('expense and income recorded in Savings do not change Net balance', () => {
+  const app = createApp();
+  app.state.transactions = [
+    { id: 'i', type: 'income', amount: 1000, account: 'Cash', date: '2026-01-15', categoryName: 'Salary' },
+    { id: 'e', type: 'expense', amount: 200, account: 'Savings', date: '2026-01-15', categoryName: 'Food' },
+    { id: 's', type: 'income', amount: 100, account: 'Savings', date: '2026-01-15', categoryName: 'Interest' }
   ];
   app.call('render');
 
@@ -174,6 +194,6 @@ test('transfers into Savings stay out of Net balance and total expense', () => {
   assert.equal(app.element('totalExpenseVal').textContent, 'Rs. 0');
 
   const summary = app.call('getWalletSummary');
-  assert.equal(summary.balances.eSewa, 700);
-  assert.equal(summary.balances.Savings, 300);
+  assert.equal(summary.balances.Cash, 1000);
+  assert.equal(summary.balances.Savings, -100);
 });
