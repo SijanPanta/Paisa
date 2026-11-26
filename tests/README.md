@@ -36,12 +36,17 @@ Coverage includes:
   settings changes, native lock/resume hooks and touch session refresh.
 - Theme, navigation, hardware back priority, search, settings/presets, modal/backdrop bindings,
   monthly budget display and exactly one listener/render/vibration per filter click.
-- Daily spend reminder toggle persistence ordering, restore resync, blocked/next-delivery status
-  display and notification settings fallback.
+- Daily spend reminder toggle persistence ordering, restore resync and enable-toast scheduling.
+- Default `Rent tirne din` reminder seeded once as an enabled, editable Rs. 4,000 monthly BS 24 entry
+  at 7:30 AM, with delete/restore respected via `rentReminderSeeded`.
+- Bikram Sambat/Gregorian round-trips, BS date labels and BS-anchored monthly recurrence, with
+  legacy Gregorian reminders left unchanged.
 - Custom reminder validation, save/toggle/edit/delete persistence and native sync ordering,
   tap-to-edit rows with the on/off switch and delete action inside the editor, backup/restore
-  round-trip, startup resync, repeat labels and month-end clamping, and Android back dismissal for
-  reminder dialogs.
+  round-trip, startup resync, repeat labels and month-end clamping, amount/note/BS schedule rows
+  without a Gregorian next-date suffix, monthly day-only pickers, a persistent BS hint for every repeat mode,
+  stacked date/weekday/time rows with the toggle in its own Status section below time, weekly weekday-to-date conversion, header close,
+  and Android back dismissal for reminder dialogs.
 - Ordered local scripts, local script/style/image and CSS `url()` existence, retained globals,
   and compilation/global function resolution for static and representative rendered handlers.
 

@@ -57,6 +57,34 @@ function isNonSpendExpense(tx) {
   return !!(tx && tx.type === 'expense' && (tx.categoryId === 'free_transfer' || tx.categoryName === 'Free Transfer'));
 }
 
+function defaultRentReminder() {
+  const bsParts = gregorianToBsString(localDateString()).split('-').map(Number);
+  const year = bsParts[0];
+  const month = bsParts[1];
+  const bsDate = `${year}-${bsPad(month)}-24`;
+  return {
+    id: 'rent_default',
+    title: 'Rent tirne din',
+    amount: 4000,
+    note: '',
+    date: bsToGregorian(year, month, 24),
+    time: '07:30',
+    calendar: 'bs',
+    bsDate,
+    repeat: 'monthly',
+    enabled: true,
+    createdAt: 1
+  };
+}
+
+function seedDefaultRentReminder() {
+  if (state.settings.rentReminderSeeded) return;
+  const hasRent = (state.reminders || []).some(r => r.id === 'rent_default' || r.title === 'Rent tirne din');
+  if (!hasRent) state.reminders.unshift(defaultRentReminder());
+  state.settings.rentReminderSeeded = true;
+  saveState();
+}
+
 let state = {
   transactions: [],
   bankAccounts: [],
@@ -70,6 +98,7 @@ let state = {
     haptics: true,
     biometricLock: true,
     dailySpendReminder: false,
+    rentReminderSeeded: false,
     theme: 'light'
   },
   isLocked: false,
@@ -110,10 +139,12 @@ function loadState() {
         haptics: true,
         biometricLock: true,
         dailySpendReminder: false,
+        rentReminderSeeded: false,
         theme: 'light'
       }, parsed.settings || {});
     } catch (e) {
       console.error('Failed to parse saved state:', e);
     }
   }
+  seedDefaultRentReminder();
 }

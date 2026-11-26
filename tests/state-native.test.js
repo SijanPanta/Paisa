@@ -14,12 +14,27 @@ test('loadState merges old settings with defaults without restoring session/UI s
   app.call('loadState');
   assert.deepEqual(plain(app.state.transactions), [{ id: 'old' }]);
   assert.equal(app.state.bankAccounts[0].name, 'Nabil');
-  assert.deepEqual(plain(app.state.reminders), []);
+  assert.deepEqual(plain(app.state.reminders), [plain(app.call('defaultRentReminder'))]);
   assert.deepEqual(plain(app.state.settings), {
-    currency: '$', budget: 0, haptics: false, biometricLock: true, dailySpendReminder: false, theme: 'light'
+    currency: '$', budget: 0, haptics: false, biometricLock: true, dailySpendReminder: false, rentReminderSeeded: true, theme: 'light'
   });
+  assert.equal(app.state.reminders[0].title, 'Rent tirne din');
+  assert.equal(app.state.reminders[0].enabled, true);
+  assert.equal(app.state.reminders[0].amount, 4000);
+  assert.equal(app.state.reminders[0].repeat, 'monthly');
+  assert.equal(app.state.reminders[0].time, '07:30');
+  assert.equal(app.state.reminders[0].bsDate.slice(-2), '24');
   assert.equal(app.state.isLocked, false);
   assert.equal(app.state.activeFilter, 'all');
+});
+
+test('seeded rent reminder stays deleted once marked seeded', () => {
+  const app = createApp({ storage: { paisa_state: JSON.stringify({
+    reminders: [], settings: { rentReminderSeeded: true }
+  }) } });
+  app.call('loadState');
+  assert.deepEqual(plain(app.state.reminders), []);
+  assert.equal(app.state.settings.rentReminderSeeded, true);
 });
 
 test('saveState uses established local/native keys and omits only the lock session', () => {

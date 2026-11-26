@@ -32,6 +32,7 @@ test('JSON backup and restore round-trip transactions, custom banks and settings
   app.state.settings.currency = '$';
   app.state.settings.biometricLock = false;
   app.state.settings.theme = 'dark';
+  app.state.settings.rentReminderSeeded = true;
   app.state.reminders.push({
     id: 'r1', title: 'Rent', amount: 4000, note: 'Monthly', date: '2026-12-20',
     time: '09:00', repeat: 'monthly', enabled: true, createdAt: 1
@@ -73,7 +74,8 @@ test('restore accepts legacy backups, rejects malformed structures and cancelled
   assert.equal(app.state.settings.currency, 'Rs.');
   assert.equal(app.state.settings.budget, 35000);
   assert.equal(app.state.settings.haptics, true);
-  assert.equal(app.state.reminders.length, 0);
+  assert.equal(app.state.reminders.length, 1);
+  assert.equal(app.state.reminders[0].title, 'Rent tirne din');
   app.state.transactions.push({ id: 'keep' });
   for (const [content, message] of [
     ['{"transactions":{}}', 'Invalid backup file'],

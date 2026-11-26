@@ -9,6 +9,11 @@ import android.content.SharedPreferences;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import bikramsambat.BikramSambatDate;
+import bikramsambat.BsCalendar;
+import bikramsambat.BsException;
+import bikramsambat.BsGregorianDate;
+
 import java.util.Calendar;
 
 public final class ReminderScheduler {
@@ -105,11 +110,15 @@ public final class ReminderScheduler {
             if (month < 0 || month > 11 || day < 1 || day > 31 || hour < 0 || hour > 23
                     || minute < 0 || minute > 59) return null;
 
+            String repeat = reminder.optString("repeat", "none");
+            if ("monthly".equals(repeat) && "bs".equals(reminder.optString("calendar", ""))) {
+                return nextBsMonthlyOccurrence(reminder, date, now, hour, minute);
+            }
+
             Calendar candidate = Calendar.getInstance();
             candidate.clear();
             candidate.set(year, month, day, hour, minute, 0);
             candidate.set(Calendar.MILLISECOND, 0);
-            String repeat = reminder.optString("repeat", "none");
 
             if ("daily".equals(repeat)) {
                 while (!candidate.after(now)) candidate.add(Calendar.DAY_OF_YEAR, 1);
@@ -130,6 +139,37 @@ public final class ReminderScheduler {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private static Calendar nextBsMonthlyOccurrence(JSONObject reminder, String gregorianDate,
+                                                    Calendar now, int hour, int minute) {
+        try {
+            BsCalendar bsCalendar = BsCalendar.getInstance();
+            String bsDate = reminder.optString("bsDate", "");
+            if (bsDate.length() != 10) bsDate = bsCalendar.toBik_euro(gregorianDate);
+            String[] parts = bsDate.split("-");
+            int year = Integer.parseInt(parts[0]);
+            int month = Integer.parseInt(parts[1]);
+            int anchorDay = Integer.parseInt(parts[2]);
+
+            for (int guard = 0; guard < 2400; guard++) {
+                int day = Math.min(anchorDay, bsCalendar.daysInMonth(year, month));
+                BsGregorianDate greg = bsCalendar.toGreg(new BikramSambatDate(year, month, day));
+                Calendar candidate = Calendar.getInstance();
+                candidate.clear();
+                candidate.set(greg.year, greg.month - 1, greg.day, hour, minute, 0);
+                candidate.set(Calendar.MILLISECOND, 0);
+                if (candidate.after(now)) return candidate;
+                month++;
+                if (month > 12) {
+                    month = 1;
+                    year++;
+                }
+            }
+        } catch (BsException | RuntimeException ignored) {
+            return null;
+        }
+        return null;
     }
 
     static void schedule(Context context, String id, Calendar at) {

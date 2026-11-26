@@ -37,11 +37,6 @@ function nativeSaveFile(fileName, mimeType, content) {
   }
 }
 
-function nativeCanPostNotifications() {
-  if (!window.AndroidBridge || !window.AndroidBridge.canPostNotifications) return true;
-  return !!window.AndroidBridge.canPostNotifications();
-}
-
 function nativeNextReminderLabel() {
   if (!window.AndroidBridge || !window.AndroidBridge.getNextReminderLabel) return '';
   return window.AndroidBridge.getNextReminderLabel() || '';
@@ -50,13 +45,5 @@ function nativeNextReminderLabel() {
 function nativeSyncReminders() {
   if (window.AndroidBridge && window.AndroidBridge.syncReminders) {
     window.AndroidBridge.syncReminders();
-  }
-}
-
-function nativeOpenNotificationSettings() {
-  if (window.AndroidBridge && window.AndroidBridge.openNotificationSettings) {
-    window.AndroidBridge.openNotificationSettings();
-  } else {
-    nativeToast('Notification settings are only available in the Android app');
   }
 }

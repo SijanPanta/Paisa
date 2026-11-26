@@ -336,21 +336,19 @@ function bindSettingsEvents() {
       ? 'Daily reminder enabled · ' + (nativeNextReminderLabel() || '9:00 PM')
       : 'Daily reminder disabled');
   });
-
-  document.getElementById('dailyReminderStatusItem').addEventListener('click', () => {
-    if (!state.settings.dailySpendReminder || nativeCanPostNotifications()) return;
-    nativeVibrate(15);
-    nativeOpenNotificationSettings();
-  });
 }
 
 function bindReminderEvents() {
   document.getElementById('addReminderBtn').addEventListener('click', () => openReminderDialog());
-  document.getElementById('cancelReminderBtn').addEventListener('click', () => {
+  document.getElementById('closeReminderBtn').addEventListener('click', () => {
     nativeVibrate(15);
     closeReminderDialog();
   });
   document.getElementById('saveReminderBtn').addEventListener('click', saveReminder);
+  ['reminderBsYearInput', 'reminderBsMonthInput', 'reminderBsDayInput'].forEach(id => {
+    document.getElementById(id).addEventListener('change', syncReminderBsDateInputs);
+  });
+  document.getElementById('reminderWeekdayInput').addEventListener('change', syncReminderWeekdayDate);
   document.getElementById('reminderEnabledInput').addEventListener('change', () => {
     if (pendingReminderId) toggleReminder(pendingReminderId);
   });
@@ -366,6 +364,7 @@ function bindReminderEvents() {
       document.querySelectorAll('#reminderRepeatPresets .preset-chip').forEach(other => {
         other.classList.toggle('active', other === chip);
       });
+      updateReminderScheduleFields(tempReminderRepeat);
     });
   });
   document.getElementById('cancelDeleteReminderBtn').addEventListener('click', () => {

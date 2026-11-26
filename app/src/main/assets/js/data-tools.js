@@ -44,6 +44,7 @@ function handleFileRestore(e) {
             haptics: true,
             biometricLock: true,
             dailySpendReminder: false,
+            rentReminderSeeded: false,
             theme: 'light'
           }, parsed.settings || {}),
           activeFilter: 'all',
@@ -55,6 +56,7 @@ function handleFileRestore(e) {
           selectedCat: 'food'
         };
         clearUndoHistory();
+        seedDefaultRentReminder();
         saveState();
         if (window.AndroidBridge && window.AndroidBridge.setDailySpendReminderEnabled) {
           window.AndroidBridge.setDailySpendReminderEnabled(state.settings.dailySpendReminder);

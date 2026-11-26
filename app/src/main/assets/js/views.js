@@ -430,20 +430,8 @@ function renderSettings() {
   }
 
   const dailyVal = document.getElementById('settingDailyReminderVal');
-  const dailyStatus = document.getElementById('settingDailyReminderStatusVal');
   if (dailyVal) {
     dailyVal.textContent = state.settings.dailySpendReminder ? 'Enabled' : 'Disabled';
-  }
-  if (dailyStatus) {
-    if (!state.settings.dailySpendReminder) {
-      dailyStatus.textContent = 'Not scheduled';
-    } else if (!window.AndroidBridge) {
-      dailyStatus.textContent = 'Preview only';
-    } else if (!nativeCanPostNotifications()) {
-      dailyStatus.textContent = 'Blocked — tap to fix';
-    } else {
-      dailyStatus.textContent = 'Next: ' + (nativeNextReminderLabel() || '9:00 PM');
-    }
   }
   renderReminders();
 }
@@ -460,13 +448,14 @@ function renderReminders() {
     const id = escapeHtml(reminder.id);
     const title = escapeHtml(reminder.title);
     const amount = Number(reminder.amount);
-    const detail = amount > 0
-      ? formatCurrency(amount) + ' · ' + reminderScheduleLabel(reminder)
-      : reminderScheduleLabel(reminder);
+    const detailParts = [];
+    if (amount > 0) detailParts.push(formatCurrency(amount));
+    if (reminder.note) detailParts.push(String(reminder.note));
+    detailParts.push(reminderScheduleLabel(reminder));
+    const detail = detailParts.join(' · ');
     const enabled = reminder.enabled !== false;
-    const next = nextReminderLabel(reminder);
     return `<button type="button" class="reminder-row" data-action="edit" data-reminder-id="${id}" aria-label="Edit ${title}">
-      <span class="reminder-info"><strong class="reminder-title">${title}</strong><span class="reminder-detail">${escapeHtml(detail)} · ${escapeHtml(next)}</span></span>
+      <span class="reminder-info"><strong class="reminder-title">${title}</strong><span class="reminder-detail">${escapeHtml(detail)}</span></span>
       <span class="reminder-row-end">
         <span class="reminder-status ${enabled ? 'on' : ''}">${enabled ? 'On' : 'Off'}</span>
         <span class="reminder-chevron" aria-hidden="true">›</span>

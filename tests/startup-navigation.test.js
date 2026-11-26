@@ -272,32 +272,6 @@ test('restoring a backup resyncs the daily reminder with native scheduling', () 
   assert.equal(saved.settings.biometricLock, true);
 });
 
-test('notification status reflects blocked permission and opens notification settings', () => {
-  const calls = [];
-  let blocked = true;
-  let app;
-  app = createApp({
-    bridge: {
-      isBiometricSupported: () => false,
-      canPostNotifications: () => !blocked,
-      getNextReminderLabel: () => 'Tomorrow, 9:00 PM',
-      setDailySpendReminderEnabled: enabled => calls.push(enabled),
-      openNotificationSettings: () => calls.push('settings')
-    }
-  });
-  app.start();
-  assert.equal(app.element('settingDailyReminderStatusVal').textContent, 'Not scheduled');
-
-  app.element('setDailyReminderItem').click();
-  assert.equal(app.element('settingDailyReminderStatusVal').textContent, 'Blocked — tap to fix');
-  app.element('dailyReminderStatusItem').click();
-
-  blocked = false;
-  app.call('renderSettings');
-  assert.equal(app.element('settingDailyReminderStatusVal').textContent, 'Next: Tomorrow, 9:00 PM');
-  assert.deepEqual(calls, [true, 'settings']);
-});
-
 test('startup resyncs custom reminders restored from local state', () => {
   const calls = [];
   const reminder = {
@@ -305,7 +279,7 @@ test('startup resyncs custom reminders restored from local state', () => {
     time: '09:00', repeat: 'monthly', enabled: true, createdAt: 1
   };
   const app = createApp({
-    storage: { paisa_state: JSON.stringify({ transactions: [], reminders: [reminder] }) },
+    storage: { paisa_state: JSON.stringify({ transactions: [], reminders: [reminder], settings: { rentReminderSeeded: true } }) },
     bridge: {
       isBiometricSupported: () => false,
       syncReminders: () => calls.push('sync')
@@ -316,9 +290,27 @@ test('startup resyncs custom reminders restored from local state', () => {
   assert.deepEqual(plain(app.state.reminders), [reminder]);
 });
 
+test('default rent reminder is listed, enabled and editable', () => {
+  const app = createApp({ bridge: { isBiometricSupported: () => false } });
+  app.start();
+  assert.equal(app.state.reminders.length, 1);
+  assert.match(app.element('customRemindersList').innerHTML, /Rent tirne din/);
+  assert.match(app.element('customRemindersList').innerHTML, /Rs\. 4,000 · Monthly on 24 .* · 7:30 AM/);
+  const row = app.element('customRemindersList').querySelector('[data-reminder-id="rent_default"]');
+  row.click();
+  assert.equal(app.element('reminderTitleInput').value, 'Rent tirne din');
+  assert.equal(app.element('reminderTimeInput').value, '07:30');
+  assert.equal(app.element('reminderEnabledInput').checked, true);
+  assert.equal(app.element('deleteReminderBtn').style.display, '');
+  app.element('reminderTitleInput').value = 'Rent tirne din (custom)';
+  app.element('saveReminderBtn').click();
+  assert.equal(app.state.reminders[0].title, 'Rent tirne din (custom)');
+});
+
 test('custom reminders are validated, saved, synced and listed with repeat labels', () => {
   const calls = [];
   const app = createApp({
+    storage: { paisa_state: JSON.stringify({ settings: { rentReminderSeeded: true } }) },
     bridge: {
       isBiometricSupported: () => false,
       syncReminders: () => calls.push('sync')
@@ -330,6 +322,13 @@ test('custom reminders are validated, saved, synced and listed with repeat label
   assert.equal(app.element('reminderDialog').classList.contains('show'), true);
   assert.equal(app.element('reminderEnabledRow').style.display, 'none');
   assert.equal(app.element('deleteReminderBtn').style.display, 'none');
+  assert.equal(app.element('reminderActions').classList.contains('single-action'), true);
+  assert.equal(app.element('reminderDateGroup').style.display, '');
+  assert.equal(app.element('reminderWeekdayGroup').style.display, 'none');
+  assert.equal(app.element('reminderTimeGroup').style.display, '');
+  assert.equal(app.element('reminderBsYearInput').style.display, 'none');
+  assert.equal(app.element('reminderBsMonthInput').style.display, 'none');
+  assert.equal(app.element('reminderBsDateRow').classList.contains('day-only'), true);
 
   app.element('saveReminderBtn').click();
   assert.equal(app.state.reminders.length, 0);
@@ -338,7 +337,9 @@ test('custom reminders are validated, saved, synced and listed with repeat label
   app.element('reminderTitleInput').value = 'Rent';
   app.element('reminderAmountInput').value = '4000';
   app.element('reminderNoteInput').value = 'Pay on time';
-  app.element('reminderDateInput').value = '2026-12-20';
+  app.element('reminderBsYearInput').value = '2083';
+  app.element('reminderBsMonthInput').value = '9';
+  app.element('reminderBsDayInput').value = '5';
   app.element('reminderTimeInput').value = '09:00';
   app.element('saveReminderBtn').click();
 
@@ -346,21 +347,77 @@ test('custom reminders are validated, saved, synced and listed with repeat label
   assert.equal(app.state.reminders[0].title, 'Rent');
   assert.equal(app.state.reminders[0].amount, 4000);
   assert.equal(app.state.reminders[0].repeat, 'monthly');
+  assert.equal(app.state.reminders[0].calendar, 'bs');
+  assert.equal(app.state.reminders[0].bsDate, '2083-09-05');
+  assert.equal(app.state.reminders[0].date, '2026-12-20');
   assert.equal(app.state.reminders[0].enabled, true);
   assert.equal(JSON.parse(app.storage.get('paisa_state')).reminders[0].title, 'Rent');
+  assert.equal(app.element('reminderDateHint').textContent, '5 Poush 2083');
   assert.deepEqual(calls, ['sync']);
   assert.equal(app.element('reminderDialog').classList.contains('show'), false);
   const list = app.element('customRemindersList').innerHTML;
   assert.match(list, /Rent/);
-  assert.match(list, /Rs\. 4,000 · Monthly on 20/);
+  assert.match(list, /Rs\. 4,000 · Pay on time · Monthly on 5 Poush · 9:00 AM/);
+  assert.doesNotMatch(list, /Dec 20|2026-12-20/);
   assert.match(list, /data-action="edit" data-reminder-id=/);
   assert.match(list, />On</);
   assert.doesNotMatch(list, /data-action="toggle"|data-action="delete"/);
 });
 
+test('repeat choice shows only the fields it needs and weekly asks for a weekday', () => {
+  const app = createApp({
+    storage: { paisa_state: JSON.stringify({ settings: { rentReminderSeeded: true } }) },
+    bridge: { isBiometricSupported: () => false }
+  });
+  app.start();
+  app.element('addReminderBtn').click();
+
+  const scheduleChildren = app.element('reminderTimeGroup').parentElement.children;
+  assert.ok(scheduleChildren.indexOf(app.element('reminderTimeGroup')) >= 0);
+  assert.equal(scheduleChildren.indexOf(app.element('reminderEnabledRow')), -1);
+  assert.equal(app.element('reminderEnabledRow').classList.contains('reminder-section'), true);
+  assert.match(app.element('reminderEnabledRow').textContent, /Status/);
+
+  app.document.querySelector('#reminderRepeatPresets [data-repeat="daily"]').click();
+  assert.equal(app.element('reminderDateGroup').style.display, 'none');
+  assert.equal(app.element('reminderWeekdayGroup').style.display, 'none');
+  assert.equal(app.element('reminderTimeGroup').style.display, '');
+  assert.match(app.element('reminderDateHint').textContent, /^Every day · /);
+
+  app.document.querySelector('#reminderRepeatPresets [data-repeat="weekly"]').click();
+  assert.equal(app.element('reminderDateGroup').style.display, 'none');
+  assert.equal(app.element('reminderWeekdayGroup').style.display, '');
+  assert.match(app.element('reminderDateHint').textContent, /^Every .*day · /);
+
+  app.element('reminderTitleInput').value = 'Standup';
+  app.element('reminderWeekdayInput').value = '1';
+  app.element('reminderWeekdayInput').dispatchEvent({ type: 'change' });
+  const anchor = app.element('reminderDateInput').value;
+  assert.equal(new Date(`${anchor}T12:00:00`).getDay(), 1);
+  assert.match(app.element('reminderDateHint').textContent, /^Every Monday · /);
+  app.element('saveReminderBtn').click();
+
+  assert.equal(app.state.reminders.length, 1);
+  assert.equal(app.state.reminders[0].repeat, 'weekly');
+  assert.equal(app.state.reminders[0].date, anchor);
+  assert.match(app.element('customRemindersList').innerHTML, /Standup/);
+  assert.match(app.element('customRemindersList').innerHTML, /Every Mon · 9:00 AM/);
+
+  app.element('addReminderBtn').click();
+  app.document.querySelector('#reminderRepeatPresets [data-repeat="none"]').click();
+  assert.equal(app.element('reminderDateGroup').style.display, '');
+  assert.equal(app.element('reminderWeekdayGroup').style.display, 'none');
+  assert.equal(app.element('reminderBsYearInput').style.display, '');
+  assert.equal(app.element('reminderBsMonthInput').style.display, '');
+  assert.equal(app.element('reminderBsDateRow').classList.contains('day-only'), false);
+  app.element('closeReminderBtn').click();
+  assert.equal(app.element('reminderDialog').classList.contains('show'), false);
+});
+
 test('custom reminder actions toggle, edit, delete and close on Android back', () => {
   const calls = [];
   const app = createApp({
+    storage: { paisa_state: JSON.stringify({ settings: { rentReminderSeeded: true } }) },
     bridge: {
       isBiometricSupported: () => false,
       syncReminders: () => calls.push('sync')
@@ -379,8 +436,9 @@ test('custom reminder actions toggle, edit, delete and close on Android back', (
   assert.equal(app.element('reminderDialog').classList.contains('show'), true);
   assert.equal(app.element('reminderTitleInput').value, 'Water');
   assert.equal(app.element('reminderEnabledInput').checked, true);
-  assert.equal(app.element('reminderEnabledRow').style.display, 'flex');
+  assert.equal(app.element('reminderEnabledRow').style.display, 'block');
   assert.equal(app.element('deleteReminderBtn').style.display, '');
+  assert.equal(app.element('reminderActions').classList.contains('single-action'), false);
 
   app.element('reminderEnabledInput').checked = false;
   app.element('reminderEnabledInput').dispatchEvent({ type: 'change' });
@@ -391,6 +449,8 @@ test('custom reminder actions toggle, edit, delete and close on Android back', (
   app.element('saveReminderBtn').click();
   assert.equal(app.state.reminders[0].title, 'Water bill');
   assert.equal(app.state.reminders[0].enabled, false);
+  assert.equal(app.state.reminders[0].calendar, 'bs');
+  assert.equal(app.state.reminders[0].bsDate, '2083-09-05');
 
   row().click();
   assert.equal(app.element('reminderTitleInput').value, 'Water bill');

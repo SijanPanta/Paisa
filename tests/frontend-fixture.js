@@ -7,8 +7,9 @@ const vm = require('node:vm');
 const assets = path.resolve(__dirname, '../app/src/main/assets');
 
 const expectedHeadScripts = ['js/theme-init.js'];
-const expectedScripts = ['state', 'undo', 'icons', 'native', 'biometric', 'formatters', 'views', 'wallets',
-  'transactions', 'account-picker', 'loans', 'friends', 'split', 'dialogs', 'navigation', 'data-tools', 'app'].map(name => `js/${name}.js`);
+const expectedScripts = ['state', 'undo', 'icons', 'native', 'biometric', 'bikram-sambat', 'formatters', 'views',
+  'wallets', 'transactions', 'account-picker', 'loans', 'friends', 'split', 'dialogs', 'navigation', 'data-tools', 'app']
+  .map(name => `js/${name}.js`);
 
 function decode(text) {
   return text.replace(/&(?:amp|lt|gt|quot|#39);/g, entity => ({

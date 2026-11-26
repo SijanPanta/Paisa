@@ -268,14 +268,6 @@
           <span class="settings-val" id="settingDailyReminderVal">Disabled</span>
         </div>
 
-        <div class="settings-item" id="dailyReminderStatusItem">
-          <div class="settings-meta">
-            <h5>Notification Status</h5>
-            <p>Permission and next delivery</p>
-          </div>
-          <span class="settings-val" id="settingDailyReminderStatusVal">Not scheduled</span>
-        </div>
-
       </div>
 
       <div class="settings-group">
@@ -872,44 +864,72 @@
 
   <!-- CUSTOM REMINDER DIALOG (MATERIAL 3) -->
   <div class="md-dialog-backdrop" id="reminderDialog">
-    <div class="md-dialog-card">
-      <div class="dialog-icon-badge primary">⏰</div>
-      <div class="dialog-title" id="reminderDialogTitle">Add Reminder</div>
-      <div class="dialog-desc">Set a one-time or repeating notification. Amount and note appear in the notification text only.</div>
-      <div class="form-group" style="margin-bottom:8px;">
-        <label class="form-label">Title</label>
-        <input type="text" id="reminderTitleInput" class="form-input" placeholder="e.g. Rent" maxlength="40" />
+    <div class="md-dialog-card reminder-dialog-card">
+      <div class="reminder-dialog-header">
+        <div class="dialog-icon-badge primary">⏰</div>
+        <div class="reminder-heading">
+          <div class="dialog-title" id="reminderDialogTitle">Add Reminder</div>
+          <div class="reminder-subtitle">Set a one-time or repeating notification.</div>
+        </div>
+        <button type="button" class="dialog-close" id="closeReminderBtn" aria-label="Close">✕</button>
       </div>
-      <div class="form-group" style="margin-bottom:8px;">
-        <label class="form-label">Amount (optional)</label>
-        <input type="number" id="reminderAmountInput" class="form-input" placeholder="4000" inputmode="decimal" min="0" />
+      <div class="reminder-section">
+        <div class="reminder-section-label">Details</div>
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <input type="text" id="reminderTitleInput" class="form-input" placeholder="e.g. Rent" maxlength="40" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (optional)</label>
+          <input type="number" id="reminderAmountInput" class="form-input" placeholder="4000" inputmode="decimal" min="0" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Note (optional)</label>
+          <input type="text" id="reminderNoteInput" class="form-input" placeholder="e.g. Pay before evening" maxlength="80" />
+        </div>
       </div>
-      <div class="form-group" style="margin-bottom:8px;">
-        <label class="form-label">Note (optional)</label>
-        <input type="text" id="reminderNoteInput" class="form-input" placeholder="e.g. Pay before evening" maxlength="80" />
+      <div class="reminder-section">
+        <div class="reminder-section-label">Schedule</div>
+        <div class="preset-chips reminder-repeat-chips" id="reminderRepeatPresets">
+          <div class="preset-chip" data-repeat="none">Once</div>
+          <div class="preset-chip" data-repeat="daily">Daily</div>
+          <div class="preset-chip" data-repeat="weekly">Weekly</div>
+          <div class="preset-chip active" data-repeat="monthly">Monthly</div>
+        </div>
+        <div class="reminder-schedule-row" id="reminderScheduleRow">
+          <div class="reminder-inline-field" id="reminderDateGroup">
+            <label class="form-label">Date</label>
+            <div class="reminder-inline-control">
+              <div class="reminder-bs-date-row" id="reminderBsDateRow">
+                <select id="reminderBsYearInput" class="form-select" aria-label="BS year"></select>
+                <select id="reminderBsMonthInput" class="form-select" aria-label="BS month"></select>
+                <select id="reminderBsDayInput" class="form-select" aria-label="BS day"></select>
+              </div>
+              <input type="hidden" id="reminderDateInput" />
+            </div>
+          </div>
+          <div class="reminder-inline-field" id="reminderWeekdayGroup" style="display:none;">
+            <label class="form-label">Day</label>
+            <select id="reminderWeekdayInput" class="form-select" aria-label="Day of week"></select>
+          </div>
+          <div class="reminder-inline-field" id="reminderTimeGroup">
+            <label class="form-label">Time</label>
+            <input type="time" id="reminderTimeInput" class="form-input" value="09:00" />
+          </div>
+        </div>
+        <div class="reminder-date-hint" id="reminderDateHint"></div>
       </div>
-      <div class="form-group" style="margin-bottom:8px;">
-        <label class="form-label">Date</label>
-        <input type="date" id="reminderDateInput" class="form-input" />
+      <div class="reminder-section reminder-toggle-section" id="reminderEnabledRow" style="display:none;">
+        <div class="reminder-section-label">Status</div>
+        <div class="reminder-switch-row">
+          <span>Reminder On</span>
+          <input type="checkbox" id="reminderEnabledInput" class="reminder-switch" checked aria-label="Reminder enabled" />
+        </div>
+        <div class="reminder-toggle-hint">Turn off to pause it without deleting.</div>
       </div>
-      <div class="form-group" style="margin-bottom:8px;">
-        <label class="form-label">Time</label>
-        <input type="time" id="reminderTimeInput" class="form-input" value="09:00" />
-      </div>
-      <div class="preset-chips" id="reminderRepeatPresets">
-        <div class="preset-chip" data-repeat="none">Once</div>
-        <div class="preset-chip" data-repeat="daily">Daily</div>
-        <div class="preset-chip" data-repeat="weekly">Weekly</div>
-        <div class="preset-chip active" data-repeat="monthly">Monthly</div>
-      </div>
-      <div class="reminder-switch-row" id="reminderEnabledRow" style="display:none;">
-        <span>Reminder on</span>
-        <input type="checkbox" id="reminderEnabledInput" class="reminder-switch" checked aria-label="Reminder enabled" />
-      </div>
-      <div class="dialog-actions">
-        <button class="dialog-btn danger" id="deleteReminderBtn" style="display:none;">Delete</button>
-        <button class="dialog-btn tonal" id="cancelReminderBtn">Cancel</button>
-        <button class="dialog-btn primary" id="saveReminderBtn">Save</button>
+      <div class="reminder-actions" id="reminderActions">
+        <button class="dialog-btn danger reminder-action-btn" id="deleteReminderBtn" style="display:none;">Delete</button>
+        <button class="dialog-btn primary reminder-action-btn" id="saveReminderBtn">Save</button>
       </div>
     </div>
   </div>
@@ -932,6 +952,7 @@
   <script src="js/icons.js"></script>
   <script src="js/native.js"></script>
   <script src="js/biometric.js"></script>
+  <script src="js/bikram-sambat.js"></script>
   <script src="js/formatters.js"></script>
   <script src="js/views.js"></script>
   <script src="js/wallets.js"></script>
