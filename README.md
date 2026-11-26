@@ -10,12 +10,14 @@ A simple, offline-first expense tracker for Android, built for the Nepali ecosys
 - **Account picker** — themed wallet and bank selection for transactions and transfers, matching the app's light/dark appearance
 - **Analytics** — monthly income/expense totals, category breakdown bars, account distribution, savings rate, average daily spend, and budget progress
 - **Budget** — configurable monthly budget with a progress bar
+- **Daily spending reminder** — optional 9:00 PM notification with today's total, permission/channel status, and a test notification action
+- **Custom reminders** — one-time, daily, weekly or monthly notifications with title, amount and note (e.g. “Rent, Rs. 4,000, 20th every month”); monthly dates clamp to the last day of shorter months
 - **Material 3 UI** — light/dark theme, haptic feedback
 - **Data tools**
   - *Backup as JSON* — saves a real `.json` file through the system "Save to" dialog (Downloads, Drive, ...)
   - *Export CSV* — same, saves a `.csv` file
   - *Restore Data* — pick a previously saved `.json` backup through the system file picker
-- **100% offline** — the only declared permission is `VIBRATE`
+- **100% offline** — declared permissions are `VIBRATE`, biometric use, `POST_NOTIFICATIONS`, and `RECEIVE_BOOT_COMPLETED`; there is no `INTERNET` permission
 
 Runs on Android 7.0+ (minSdk 24, targetSdk 33).
 
@@ -34,7 +36,7 @@ paisa/
 └── local.properties               # (gitignored) machine-specific SDK path
 ```
 
-The app is intentionally minimal: `MainActivity` hosts a WebView and exposes a small JavaScript bridge (`AndroidBridge`) with vibration, toasts, sharing, key/value persistence (SharedPreferences), status-bar coloring, file picking (restore), and file saving (backup). Everything else — screens, logic, storage in `localStorage` — lives in `assets/index.html`.
+The app is intentionally minimal: `MainActivity` hosts a WebView and exposes a small JavaScript bridge (`AndroidBridge`) with vibration, toasts, sharing, key/value persistence (SharedPreferences), status-bar coloring, file picking (restore), file saving (backup), and reminder scheduling with notification status/test actions. Reminders are stored in `state.reminders`, mirrored into the offline backup, and re-scheduled natively on startup, restore and reboot. Custom reminders post standard notifications only — there is no exact-alarm permission or alarm-clock UI, and delivery can be slightly delayed by Android. Everything else — screens, logic, storage in `localStorage` — lives in `assets/index.html`.
 
 ## Requirements
 
@@ -106,6 +108,8 @@ Rebuild after every change — assets are packaged inside the APK, so edits only
 | Device not detected by adb | Enable USB debugging on the phone; run `adb kill-server && adb devices` and accept the on-phone prompt |
 | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | Signature changed (keystore regenerated). Uninstall the old app first — export a JSON backup before doing so |
 | Build succeeds but app shows old UI | You edited `index.html` without rebuilding — the asset is bundled into the APK |
+| Daily reminder not showing | Check **Settings → Notification Status**; allow notifications or unmute the `daily_spend` channel, then use **Send Test Notification**. Enabling after 9:00 PM schedules the next day; force-stopping the app cancels alarms until it is reopened |
+| Custom reminder not showing | Open the reminder in **Settings → Custom Reminders** and tap **Test**. Check **Notification Status** for permission/channel blocking. One-time reminders in the past are rejected; repeating reminders use the chosen date as their anchor and fire at the next future occurrence |
 
 ## Contributing
 

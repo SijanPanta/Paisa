@@ -49,6 +49,7 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.bespoke.paisa.action.DAILY_SPEND" />
+                <action android:name="com.bespoke.paisa.action.CUSTOM_REMINDER" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>

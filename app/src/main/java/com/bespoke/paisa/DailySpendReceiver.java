@@ -29,9 +29,11 @@ public class DailySpendReceiver extends BroadcastReceiver {
         if (intent == null) return;
         String action = intent.getAction();
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            if (isReminderEnabled(context)) {
-                DailySpendScheduler.schedule(context);
-            }
+            ReminderScheduler.sync(context);
+            return;
+        }
+        if (ReminderScheduler.ACTION_CUSTOM_REMINDER.equals(action)) {
+            showCustom(context, intent.getStringExtra(ReminderScheduler.EXTRA_REMINDER_ID));
             return;
         }
         if (!ACTION_DAILY_SPEND.equals(action)) return;
@@ -52,6 +54,81 @@ public class DailySpendReceiver extends BroadcastReceiver {
         } catch (Exception ignored) {
             return false;
         }
+    }
+
+    static void setReminderEnabled(Context context, boolean enabled) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        try {
+            String raw = prefs.getString(BACKUP_KEY, null);
+            JSONObject root = raw == null ? new JSONObject() : new JSONObject(raw);
+            JSONObject settings = root.optJSONObject("settings");
+            if (settings == null) {
+                settings = new JSONObject();
+                root.put("settings", settings);
+            }
+            settings.put("dailySpendReminder", enabled);
+            prefs.edit().putString(BACKUP_KEY, root.toString()).apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    static void sendTestNotification(Context context) {
+        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        ensureChannel(nm);
+        Notification.Builder builder = notificationBuilder(context, "Daily spend test",
+                "Your daily spending reminder is working.");
+        nm.notify(2002, builder.build());
+    }
+
+    static void sendTestReminder(Context context, String id) {
+        JSONObject reminder = ReminderScheduler.findReminder(context, id);
+        if (reminder == null) return;
+        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        ensureChannel(nm);
+        String title = "Test: " + reminder.optString("title", "Reminder");
+        nm.notify(ReminderScheduler.notificationId(id),
+                notificationBuilder(context, title, reminderText(context, reminder)).build());
+    }
+
+    static void showCustom(Context context, String id) {
+        JSONObject reminder = ReminderScheduler.findReminder(context, id);
+        if (reminder == null || !reminder.optBoolean("enabled", true)) return;
+        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        ensureChannel(nm);
+        nm.notify(ReminderScheduler.notificationId(id), notificationBuilder(context,
+                reminder.optString("title", "Reminder"), reminderText(context, reminder)).build());
+
+        Calendar next = ReminderScheduler.nextOccurrence(reminder, Calendar.getInstance());
+        if (next != null) {
+            ReminderScheduler.schedule(context, id, next);
+        } else {
+            ReminderScheduler.setEnabled(context, id, false);
+        }
+    }
+
+    private static String reminderText(Context context, JSONObject reminder) {
+        double amount = reminder.optDouble("amount", -1);
+        String amountText = amount > 0 ? formatCurrency(currency(context), amount) : "";
+        String note = reminder.optString("note", "").trim();
+        if (!amountText.isEmpty() && !note.isEmpty()) return amountText + " · " + note;
+        if (!amountText.isEmpty()) return amountText + " is due.";
+        return note.isEmpty() ? "It's time." : note;
+    }
+
+    private static String currency(Context context) {
+        try {
+            String raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .getString(BACKUP_KEY, null);
+            if (raw != null) {
+                JSONObject settings = new JSONObject(raw).optJSONObject("settings");
+                if (settings != null) return settings.optString("currency", "Rs.");
+            }
+        } catch (Exception ignored) {
+        }
+        return "Rs.";
     }
 
     static void showSummary(Context context) {
@@ -95,32 +172,30 @@ public class DailySpendReceiver extends BroadcastReceiver {
             NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm == null) return;
             ensureChannel(nm);
-
-            Intent openIntent = new Intent(context, MainActivity.class);
-            openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) flags |= PendingIntent.FLAG_IMMUTABLE;
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 1001, openIntent, flags);
-
-            Notification.Builder builder;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                builder = new Notification.Builder(context, CHANNEL_ID);
-            } else {
-                builder = new Notification.Builder(context);
-            }
-            builder.setSmallIcon(R.mipmap.ic_launcher)
-                    .setContentTitle(title)
-                    .setContentText(text)
-                    .setStyle(new Notification.BigTextStyle().bigText(text))
-                    .setAutoCancel(true)
-                    .setContentIntent(pendingIntent);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                nm.notify(2001, builder.build());
-            } else {
-                nm.notify(2001, builder.getNotification());
-            }
+            nm.notify(2001, notificationBuilder(context, title, text).build());
         } catch (Exception ignored) {
         }
+    }
+
+    static Notification.Builder notificationBuilder(Context context, String title, String text) {
+        Intent openIntent = new Intent(context, MainActivity.class);
+        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) flags |= PendingIntent.FLAG_IMMUTABLE;
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 1001, openIntent, flags);
+
+        Notification.Builder builder;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder = new Notification.Builder(context, CHANNEL_ID);
+        } else {
+            builder = new Notification.Builder(context);
+        }
+        return builder.setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setStyle(new Notification.BigTextStyle().bigText(text))
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
     }
 
     static boolean isSpendToday(JSONObject tx, int year, int month, int day) {
@@ -184,8 +259,8 @@ public class DailySpendReceiver extends BroadcastReceiver {
 
     static void ensureChannel(NotificationManager nm) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Daily spending", NotificationManager.IMPORTANCE_DEFAULT);
-            channel.setDescription("Daily summary of your spending");
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Paisa reminders", NotificationManager.IMPORTANCE_DEFAULT);
+            channel.setDescription("Daily summary and your custom reminders");
             nm.createNotificationChannel(channel);
         }
     }

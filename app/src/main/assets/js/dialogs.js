@@ -134,3 +134,130 @@ function confirmDeleteBank() {
   nativeVibrate(30);
   nativeToast('Bank wallet and its transactions deleted');
 }
+
+let pendingReminderId = null;
+let pendingDeleteReminderId = null;
+let tempReminderRepeat = 'monthly';
+
+function openReminderDialog(id = null) {
+  nativeVibrate(20);
+  pendingReminderId = id || null;
+  const reminder = id ? (state.reminders || []).find(r => r.id === id) : null;
+  document.getElementById('reminderDialogTitle').textContent = reminder ? 'Edit Reminder' : 'Add Reminder';
+  document.getElementById('reminderTitleInput').value = reminder ? reminder.title || '' : '';
+  document.getElementById('reminderAmountInput').value = reminder && reminder.amount ? reminder.amount : '';
+  document.getElementById('reminderNoteInput').value = reminder ? reminder.note || '' : '';
+  document.getElementById('reminderDateInput').value = reminder ? reminder.date || localDateString() : localDateString();
+  document.getElementById('reminderTimeInput').value = reminder ? reminder.time || '09:00' : '09:00';
+  tempReminderRepeat = reminder ? reminder.repeat || 'none' : 'monthly';
+  document.querySelectorAll('#reminderRepeatPresets .preset-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.repeat === tempReminderRepeat);
+  });
+  document.getElementById('reminderDialog').classList.add('show');
+  setTimeout(() => document.getElementById('reminderTitleInput').focus(), 80);
+}
+
+function closeReminderDialog() {
+  pendingReminderId = null;
+  document.getElementById('reminderDialog').classList.remove('show');
+}
+
+function saveReminder() {
+  const title = (document.getElementById('reminderTitleInput').value || '').trim();
+  const date = document.getElementById('reminderDateInput').value || '';
+  const time = document.getElementById('reminderTimeInput').value || '';
+  const note = (document.getElementById('reminderNoteInput').value || '').trim();
+  const rawAmount = (document.getElementById('reminderAmountInput').value || '').trim();
+  if (!title) {
+    nativeToast('Please enter a reminder title');
+    return;
+  }
+  if (!date || !/^\d{2}:\d{2}$/.test(time)) {
+    nativeToast('Please choose a date and time');
+    return;
+  }
+  if (tempReminderRepeat === 'none' && date < localDateString()) {
+    nativeToast('One-time reminders need a today or future date');
+    return;
+  }
+  const amount = rawAmount === '' ? null : Number(rawAmount);
+  if (amount !== null && (!Number.isFinite(amount) || amount < 0)) {
+    nativeToast('Please enter a valid amount');
+    return;
+  }
+
+  if (!Array.isArray(state.reminders)) state.reminders = [];
+  const existing = pendingReminderId
+    ? state.reminders.find(r => r.id === pendingReminderId)
+    : null;
+  const reminder = {
+    id: existing ? existing.id : `r_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    title, amount, note, date, time,
+    repeat: tempReminderRepeat || 'monthly',
+    enabled: existing ? existing.enabled !== false : true,
+    createdAt: existing ? existing.createdAt || Date.now() : Date.now()
+  };
+  if (existing) {
+    state.reminders[state.reminders.indexOf(existing)] = reminder;
+  } else {
+    state.reminders.push(reminder);
+  }
+  saveState();
+  nativeSyncReminders();
+  closeReminderDialog();
+  renderSettings();
+  nativeVibrate(35);
+  nativeToast(existing ? 'Reminder updated' : 'Reminder added');
+}
+
+function promptDeleteReminder(id) {
+  nativeVibrate(20);
+  pendingDeleteReminderId = id;
+  const reminder = (state.reminders || []).find(r => r.id === id);
+  document.getElementById('deleteReminderDesc').textContent =
+    `Delete "${reminder ? reminder.title : 'this reminder'}" and stop its notifications?`;
+  document.getElementById('deleteReminderDialog').classList.add('show');
+}
+
+function closeDeleteReminderDialog() {
+  pendingDeleteReminderId = null;
+  document.getElementById('deleteReminderDialog').classList.remove('show');
+}
+
+function confirmDeleteReminder() {
+  if (!pendingDeleteReminderId) return;
+  state.reminders = (state.reminders || []).filter(r => r.id !== pendingDeleteReminderId);
+  saveState();
+  nativeSyncReminders();
+  closeDeleteReminderDialog();
+  renderSettings();
+  nativeVibrate(30);
+  nativeToast('Reminder deleted');
+}
+
+function toggleReminder(id) {
+  const reminder = (state.reminders || []).find(r => r.id === id);
+  if (!reminder) return;
+  reminder.enabled = reminder.enabled === false;
+  saveState();
+  nativeSyncReminders();
+  renderSettings();
+  nativeToast(reminder.enabled ? 'Reminder enabled' : 'Reminder disabled');
+}
+
+function sendTestReminder(id) {
+  nativeVibrate(20);
+  if (nativeSendTestReminder(id)) nativeToast('Test reminder sent');
+}
+
+function handleReminderAction(event) {
+  const button = event.target;
+  const id = button.dataset.reminderId;
+  const action = button.dataset.action;
+  if (!id || !action) return;
+  nativeVibrate(15);
+  if (action === 'toggle') toggleReminder(id);
+  else if (action === 'test') sendTestReminder(id);
+  else if (action === 'edit') openReminderDialog(id);
+  else if (action === 'delete') promptDeleteReminder(id);
+}

@@ -88,6 +88,7 @@ function switchTab(viewId) {
     document.getElementById('searchBarWrap').classList.remove('show');
   }
 
+  if (viewId === 'viewSettings') renderSettings();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -106,6 +107,8 @@ window.handleAndroidBack = function() {
   const openDialog = document.querySelector('.md-dialog-backdrop.show');
   if (openDialog) {
     if (openDialog.id === 'deleteBankDialog') closeDeleteBankDialog();
+    else if (openDialog.id === 'reminderDialog') closeReminderDialog();
+    else if (openDialog.id === 'deleteReminderDialog') closeDeleteReminderDialog();
     else if (openDialog.id === 'loanAdjustDialog') closeLoanAdjustDialog();
     else if (openDialog.id === 'addFriendDialog') closeAddFriendDialog();
     else if (openDialog.id === 'deleteFriendDialog') closeDeleteFriendDialog();

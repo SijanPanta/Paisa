@@ -14,6 +14,7 @@ test('loadState merges old settings with defaults without restoring session/UI s
   app.call('loadState');
   assert.deepEqual(plain(app.state.transactions), [{ id: 'old' }]);
   assert.equal(app.state.bankAccounts[0].name, 'Nabil');
+  assert.deepEqual(plain(app.state.reminders), []);
   assert.deepEqual(plain(app.state.settings), {
     currency: '$', budget: 0, haptics: false, biometricLock: true, dailySpendReminder: false, theme: 'light'
   });
@@ -30,6 +31,7 @@ test('saveState uses established local/native keys and omits only the lock sessi
   const serialized = app.storage.get('paisa_state');
   assert.equal(Object.hasOwn(JSON.parse(serialized), 'isLocked'), false);
   assert.equal(JSON.parse(serialized).bankAccounts[0].id, 'bank-1');
+  assert.deepEqual(JSON.parse(serialized).reminders, []);
   assert.deepEqual(saves, [['paisa_backup', serialized]]);
   assert.equal(app.state.isLocked, true);
 });
@@ -92,6 +94,22 @@ test('browser fallbacks vibrate, alert, share or copy without AndroidBridge', as
   assert.deepEqual(shares, [{ title: 'title', text: 'text' }]);
 });
 
+test('native reminder helpers call sync and per-reminder test bridge methods', () => {
+  const calls = [];
+  const app = createApp({ bridge: {
+    syncReminders: () => calls.push(['sync']),
+    sendTestReminder: id => calls.push(['test', id])
+  } });
+  assert.equal(app.call('nativeSyncReminders'), true);
+  assert.equal(app.call('nativeSendTestReminder', 'r1'), true);
+  assert.deepEqual(calls, [['sync'], ['test', 'r1']]);
+
+  const preview = createApp();
+  assert.equal(preview.call('nativeSyncReminders'), false);
+  assert.equal(preview.call('nativeSendTestReminder', 'r1'), false);
+  assert.deepEqual(preview.calls.alerts, ['Test notifications are only available in the Android app']);
+});
+
 test('formatters retain currency grouping, relative dates and HTML escaping', () => {
   const app = createApp();
   assert.equal(app.call('formatCurrency', 123456.75), 'Rs. 1,23,456.75');
@@ -103,4 +121,15 @@ test('formatters retain currency grouping, relative dates and HTML escaping', ()
   assert.equal(app.call('formatDateHeader', yesterday.toISOString()), 'Yesterday');
   assert.equal(app.call('escapeHtml', '<a title="x">&'), '&lt;a title=&quot;x&quot;&gt;&amp;');
   assert.equal(app.call('escapeHtml', null), '');
+});
+
+test('reminder helpers label schedules, clamp monthly dates and reject past one-time reminders', () => {
+  const app = createApp();
+  const now = new Date(2026, 0, 31, 10, 0, 0);
+  const next = app.call('nextReminderDate', { date: '2026-01-31', time: '09:00', repeat: 'monthly' }, now);
+  assert.equal(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`, '2026-02-28');
+  assert.equal(app.call('nextReminderDate', { date: '2026-01-01', time: '09:00', repeat: 'none' }, now), null);
+  assert.equal(app.call('reminderTimeLabel', '21:00'), '9:00 PM');
+  assert.equal(app.call('reminderScheduleLabel', { date: '2026-12-20', time: '21:00', repeat: 'monthly' }), 'Monthly on 20 · 9:00 PM');
+  assert.equal(app.call('reminderScheduleLabel', { date: '2026-12-20', time: '09:00', repeat: 'weekly' }), 'Every Sun · 9:00 AM');
 });

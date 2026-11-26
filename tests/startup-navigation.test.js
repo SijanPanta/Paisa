@@ -4,6 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createApp } = require('./frontend-fixture');
 
+const plain = value => JSON.parse(JSON.stringify(value));
+
 function biometricApp({ supported = true, unlocked = false, enabled = true } = {}) {
   const auth = [];
   let touches = 0;
@@ -235,4 +237,165 @@ test('daily spend reminder setting toggles, persists and notifies native bridge'
   assert.equal(app.state.settings.dailySpendReminder, false);
   assert.equal(app.element('settingDailyReminderVal').textContent, 'Disabled');
   assert.deepEqual(calls, [true, false]);
+});
+
+test('daily reminder state is saved before the native bridge is called', () => {
+  const observed = [];
+  let app;
+  app = createApp({
+    bridge: {
+      isBiometricSupported: () => false,
+      setDailySpendReminderEnabled: enabled => observed.push({
+        enabled,
+        saved: JSON.parse(app.storage.get('paisa_state')).settings.dailySpendReminder
+      })
+    }
+  });
+  app.start();
+  app.element('setDailyReminderItem').click();
+  assert.deepEqual(observed, [{ enabled: true, saved: true }]);
+});
+
+test('restoring a backup resyncs the daily reminder with native scheduling', () => {
+  const calls = [];
+  const app = createApp({
+    bridge: {
+      isBiometricSupported: () => false,
+      setDailySpendReminderEnabled: enabled => calls.push(enabled)
+    }
+  });
+  app.start();
+  app.restore(JSON.stringify({ transactions: [], settings: { dailySpendReminder: true } }));
+  assert.deepEqual(calls, [true]);
+  const saved = JSON.parse(app.storage.get('paisa_state'));
+  assert.equal(saved.settings.dailySpendReminder, true);
+  assert.equal(saved.settings.biometricLock, true);
+});
+
+test('notification status reflects blocked permission and the test action uses native bridge', () => {
+  const calls = [];
+  let blocked = true;
+  let app;
+  app = createApp({
+    bridge: {
+      isBiometricSupported: () => false,
+      canPostNotifications: () => !blocked,
+      getNextReminderLabel: () => 'Tomorrow, 9:00 PM',
+      setDailySpendReminderEnabled: enabled => calls.push(enabled),
+      sendTestNotification: () => calls.push('test'),
+      openNotificationSettings: () => calls.push('settings')
+    }
+  });
+  app.start();
+  assert.equal(app.element('settingDailyReminderStatusVal').textContent, 'Not scheduled');
+
+  app.element('setDailyReminderItem').click();
+  assert.equal(app.element('settingDailyReminderStatusVal').textContent, 'Blocked — tap to fix');
+  app.element('dailyReminderStatusItem').click();
+
+  blocked = false;
+  app.call('renderSettings');
+  assert.equal(app.element('settingDailyReminderStatusVal').textContent, 'Next: Tomorrow, 9:00 PM');
+  app.element('sendTestNotificationBtn').click();
+  assert.deepEqual(calls, [true, 'settings', 'test']);
+});
+
+test('startup resyncs custom reminders restored from local state', () => {
+  const calls = [];
+  const reminder = {
+    id: 'r-start', title: 'Rent', amount: 4000, note: '', date: '2026-12-20',
+    time: '09:00', repeat: 'monthly', enabled: true, createdAt: 1
+  };
+  const app = createApp({
+    storage: { paisa_state: JSON.stringify({ transactions: [], reminders: [reminder] }) },
+    bridge: {
+      isBiometricSupported: () => false,
+      syncReminders: () => calls.push('sync')
+    }
+  });
+  app.start();
+  assert.deepEqual(calls, ['sync']);
+  assert.deepEqual(plain(app.state.reminders), [reminder]);
+});
+
+test('custom reminders are validated, saved, synced and listed with repeat labels', () => {
+  const calls = [];
+  const app = createApp({
+    bridge: {
+      isBiometricSupported: () => false,
+      syncReminders: () => calls.push('sync'),
+      sendTestReminder: id => calls.push(['test', id])
+    }
+  });
+  app.start();
+  calls.length = 0;
+  app.element('addReminderBtn').click();
+  assert.equal(app.element('reminderDialog').classList.contains('show'), true);
+
+  app.element('saveReminderBtn').click();
+  assert.equal(app.state.reminders.length, 0);
+  assert.equal(app.calls.alerts.at(-1), 'Please enter a reminder title');
+
+  app.element('reminderTitleInput').value = 'Rent';
+  app.element('reminderAmountInput').value = '4000';
+  app.element('reminderNoteInput').value = 'Pay on time';
+  app.element('reminderDateInput').value = '2026-12-20';
+  app.element('reminderTimeInput').value = '09:00';
+  app.element('saveReminderBtn').click();
+
+  assert.equal(app.state.reminders.length, 1);
+  assert.equal(app.state.reminders[0].title, 'Rent');
+  assert.equal(app.state.reminders[0].amount, 4000);
+  assert.equal(app.state.reminders[0].repeat, 'monthly');
+  assert.equal(app.state.reminders[0].enabled, true);
+  assert.equal(JSON.parse(app.storage.get('paisa_state')).reminders[0].title, 'Rent');
+  assert.deepEqual(calls, ['sync']);
+  assert.equal(app.element('reminderDialog').classList.contains('show'), false);
+  const list = app.element('customRemindersList').innerHTML;
+  assert.match(list, /Rent/);
+  assert.match(list, /Rs\. 4,000 · Monthly on 20/);
+  assert.match(list, /data-action="toggle"/);
+});
+
+test('custom reminder actions toggle, test, edit, delete and close on Android back', () => {
+  const calls = [];
+  const app = createApp({
+    bridge: {
+      isBiometricSupported: () => false,
+      syncReminders: () => calls.push('sync'),
+      sendTestReminder: id => calls.push(['test', id])
+    }
+  });
+  app.start();
+  calls.length = 0;
+  app.state.reminders.push({
+    id: 'r1', title: 'Water', amount: null, note: '', date: '2026-12-20',
+    time: '09:00', repeat: 'monthly', enabled: true, createdAt: 1
+  });
+  app.call('renderSettings');
+  const list = app.element('customRemindersList');
+
+  list.querySelector('[data-action="toggle"][data-reminder-id="r1"]').click();
+  assert.equal(app.state.reminders[0].enabled, false);
+  assert.deepEqual(calls, ['sync']);
+
+  app.element('customRemindersList').querySelector('[data-action="test"]').click();
+  assert.deepEqual(calls, ['sync', ['test', 'r1']]);
+
+  app.element('customRemindersList').querySelector('[data-action="edit"]').click();
+  assert.equal(app.element('reminderDialog').classList.contains('show'), true);
+  assert.equal(app.element('reminderTitleInput').value, 'Water');
+  app.element('reminderTitleInput').value = 'Water bill';
+  app.element('saveReminderBtn').click();
+  assert.equal(app.state.reminders[0].title, 'Water bill');
+  assert.equal(app.state.reminders[0].enabled, false);
+
+  app.element('customRemindersList').querySelector('[data-action="delete"]').click();
+  assert.equal(app.element('deleteReminderDialog').classList.contains('show'), true);
+  app.call('handleAndroidBack');
+  assert.equal(app.element('deleteReminderDialog').classList.contains('show'), false);
+  app.element('customRemindersList').querySelector('[data-action="delete"]').click();
+  app.element('confirmDeleteReminderBtn').click();
+  assert.equal(app.state.reminders.length, 0);
+  assert.equal(calls.at(-1), 'sync');
 });

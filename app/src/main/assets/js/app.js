@@ -2,6 +2,7 @@ let searchDebounceTimer = null;
 
 function initApp() {
   loadState();
+  nativeSyncReminders();
   render();
   initScrollLock();
   initializeBiometricLock();
@@ -13,6 +14,7 @@ function initApp() {
   bindFriendEvents();
   bindSplitEvents();
   bindSettingsEvents();
+  bindReminderEvents();
   bindCurrencyEvents();
   bindBudgetEvents();
   bindDataEvents();
@@ -321,6 +323,7 @@ function bindSettingsEvents() {
   document.getElementById('setDailyReminderItem').addEventListener('click', () => {
     nativeVibrate(20);
     state.settings.dailySpendReminder = !state.settings.dailySpendReminder;
+    saveState();
     try {
       if (window.AndroidBridge && window.AndroidBridge.setDailySpendReminderEnabled) {
         window.AndroidBridge.setDailySpendReminderEnabled(state.settings.dailySpendReminder);
@@ -328,10 +331,45 @@ function bindSettingsEvents() {
     } catch (e) {
       console.error('Daily reminder toggle failed:', e);
     }
-    saveState();
     renderSettings();
-    nativeToast(state.settings.dailySpendReminder ? 'Daily reminder enabled for 5:30 PM' : 'Daily reminder disabled');
+    nativeToast(state.settings.dailySpendReminder
+      ? 'Daily reminder enabled · ' + (nativeNextReminderLabel() || '9:00 PM')
+      : 'Daily reminder disabled');
   });
+
+  document.getElementById('dailyReminderStatusItem').addEventListener('click', () => {
+    if (!state.settings.dailySpendReminder || nativeCanPostNotifications()) return;
+    nativeVibrate(15);
+    nativeOpenNotificationSettings();
+  });
+
+  document.getElementById('sendTestNotificationBtn').addEventListener('click', () => {
+    nativeVibrate(20);
+    if (nativeSendTestNotification()) nativeToast('Test notification sent');
+  });
+}
+
+function bindReminderEvents() {
+  document.getElementById('addReminderBtn').addEventListener('click', () => openReminderDialog());
+  document.getElementById('cancelReminderBtn').addEventListener('click', () => {
+    nativeVibrate(15);
+    closeReminderDialog();
+  });
+  document.getElementById('saveReminderBtn').addEventListener('click', saveReminder);
+  document.querySelectorAll('#reminderRepeatPresets .preset-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      nativeVibrate(15);
+      tempReminderRepeat = chip.dataset.repeat;
+      document.querySelectorAll('#reminderRepeatPresets .preset-chip').forEach(other => {
+        other.classList.toggle('active', other === chip);
+      });
+    });
+  });
+  document.getElementById('cancelDeleteReminderBtn').addEventListener('click', () => {
+    nativeVibrate(15);
+    closeDeleteReminderDialog();
+  });
+  document.getElementById('confirmDeleteReminderBtn').addEventListener('click', confirmDeleteReminder);
 }
 
 function bindCurrencyEvents() {

@@ -263,10 +263,37 @@
         <div class="settings-item" id="setDailyReminderItem">
           <div class="settings-meta">
             <h5>Daily Spend Reminder</h5>
-            <p>Notify at 5:30 PM with today's spending</p>
+            <p>Notify at 9:00 PM with today's spending</p>
           </div>
           <span class="settings-val" id="settingDailyReminderVal">Disabled</span>
         </div>
+
+        <div class="settings-item" id="dailyReminderStatusItem">
+          <div class="settings-meta">
+            <h5>Notification Status</h5>
+            <p>Permission and next delivery</p>
+          </div>
+          <span class="settings-val" id="settingDailyReminderStatusVal">Not scheduled</span>
+        </div>
+
+        <div class="settings-item" id="sendTestNotificationBtn">
+          <div class="settings-meta">
+            <h5>Send Test Notification</h5>
+            <p>Check delivery right now</p>
+          </div>
+          <span class="settings-val">Send ↗</span>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-item" id="addReminderBtn">
+          <div class="settings-meta">
+            <h5>Custom Reminders</h5>
+            <p>Rent, bills and other repeating notifications</p>
+          </div>
+          <span class="settings-val">Add +</span>
+        </div>
+        <div id="customRemindersList"></div>
       </div>
 
       <div class="settings-group">
@@ -846,6 +873,58 @@
       <div class="dialog-actions">
         <button class="dialog-btn tonal" id="cancelDeleteBankBtn">Cancel</button>
         <button class="dialog-btn danger" id="confirmDeleteBankBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM REMINDER DIALOG (MATERIAL 3) -->
+  <div class="md-dialog-backdrop" id="reminderDialog">
+    <div class="md-dialog-card">
+      <div class="dialog-icon-badge primary">⏰</div>
+      <div class="dialog-title" id="reminderDialogTitle">Add Reminder</div>
+      <div class="dialog-desc">Set a one-time or repeating notification. Amount and note appear in the notification text only.</div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Title</label>
+        <input type="text" id="reminderTitleInput" class="form-input" placeholder="e.g. Rent" maxlength="40" />
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Amount (optional)</label>
+        <input type="number" id="reminderAmountInput" class="form-input" placeholder="4000" inputmode="decimal" min="0" />
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Note (optional)</label>
+        <input type="text" id="reminderNoteInput" class="form-input" placeholder="e.g. Pay before evening" maxlength="80" />
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Date</label>
+        <input type="date" id="reminderDateInput" class="form-input" />
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Time</label>
+        <input type="time" id="reminderTimeInput" class="form-input" value="09:00" />
+      </div>
+      <div class="preset-chips" id="reminderRepeatPresets">
+        <div class="preset-chip" data-repeat="none">Once</div>
+        <div class="preset-chip" data-repeat="daily">Daily</div>
+        <div class="preset-chip" data-repeat="weekly">Weekly</div>
+        <div class="preset-chip active" data-repeat="monthly">Monthly</div>
+      </div>
+      <div class="dialog-actions">
+        <button class="dialog-btn tonal" id="cancelReminderBtn">Cancel</button>
+        <button class="dialog-btn primary" id="saveReminderBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE CUSTOM REMINDER DIALOG (MATERIAL 3) -->
+  <div class="md-dialog-backdrop" id="deleteReminderDialog">
+    <div class="md-dialog-card">
+      <div class="dialog-icon-badge danger">✕</div>
+      <div class="dialog-title">Delete reminder?</div>
+      <div class="dialog-desc" id="deleteReminderDesc">This reminder will stop sending notifications.</div>
+      <div class="dialog-actions">
+        <button class="dialog-btn tonal" id="cancelDeleteReminderBtn">Cancel</button>
+        <button class="dialog-btn danger" id="confirmDeleteReminderBtn">Delete</button>
       </div>
     </div>
   </div>

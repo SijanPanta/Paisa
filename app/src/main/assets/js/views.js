@@ -430,7 +430,52 @@ function renderSettings() {
   }
 
   const dailyVal = document.getElementById('settingDailyReminderVal');
+  const dailyStatus = document.getElementById('settingDailyReminderStatusVal');
   if (dailyVal) {
     dailyVal.textContent = state.settings.dailySpendReminder ? 'Enabled' : 'Disabled';
   }
+  if (dailyStatus) {
+    if (!state.settings.dailySpendReminder) {
+      dailyStatus.textContent = 'Not scheduled';
+    } else if (!window.AndroidBridge) {
+      dailyStatus.textContent = 'Preview only';
+    } else if (!nativeCanPostNotifications()) {
+      dailyStatus.textContent = 'Blocked — tap to fix';
+    } else {
+      dailyStatus.textContent = 'Next: ' + (nativeNextReminderLabel() || '9:00 PM');
+    }
+  }
+  renderReminders();
+}
+
+function renderReminders() {
+  const list = document.getElementById('customRemindersList');
+  if (!list) return;
+  const reminders = state.reminders || [];
+  if (!reminders.length) {
+    list.innerHTML = '<div class="reminder-empty">No custom reminders yet. Tap Add + to create one.</div>';
+    return;
+  }
+  list.innerHTML = reminders.map(reminder => {
+    const id = escapeHtml(reminder.id);
+    const title = escapeHtml(reminder.title);
+    const amount = Number(reminder.amount);
+    const detail = amount > 0
+      ? formatCurrency(amount) + ' · ' + reminderScheduleLabel(reminder)
+      : reminderScheduleLabel(reminder);
+    const enabled = reminder.enabled !== false;
+    const next = nextReminderLabel(reminder);
+    return `<div class="reminder-row">
+      <div class="reminder-info"><h6>${title}</h6><p>${escapeHtml(detail)} · ${escapeHtml(next)}</p></div>
+      <div class="reminder-actions">
+        <button class="reminder-action ${enabled ? 'active' : ''}" data-action="toggle" data-reminder-id="${id}">${enabled ? 'On' : 'Off'}</button>
+        <button class="reminder-action" data-action="test" data-reminder-id="${id}">Test</button>
+        <button class="reminder-action" data-action="edit" data-reminder-id="${id}">Edit</button>
+        <button class="reminder-action" data-action="delete" data-reminder-id="${id}">Del</button>
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-action]').forEach(button => {
+    button.addEventListener('click', handleReminderAction);
+  });
 }

@@ -10,6 +10,9 @@ import java.util.Calendar;
 
 public final class DailySpendScheduler {
 
+    private static final int DAILY_HOUR = 21;
+    private static final int DAILY_MINUTE = 0;
+
     private DailySpendScheduler() {}
 
     static void schedule(Context context) {
@@ -17,14 +20,7 @@ public final class DailySpendScheduler {
         if (am == null) return;
         PendingIntent pi = pendingIntent(context, PendingIntent.FLAG_UPDATE_CURRENT | immutableFlag());
 
-        Calendar next = Calendar.getInstance();
-        next.set(Calendar.HOUR_OF_DAY, 17);
-        next.set(Calendar.MINUTE, 30);
-        next.set(Calendar.SECOND, 0);
-        next.set(Calendar.MILLISECOND, 0);
-        if (!next.after(Calendar.getInstance())) {
-            next.add(Calendar.DAY_OF_YEAR, 1);
-        }
+        Calendar next = nextFireTime();
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -40,6 +36,27 @@ public final class DailySpendScheduler {
             } catch (Exception ignoredAgain) {
             }
         }
+    }
+
+    static Calendar nextFireTime() {
+        Calendar now = Calendar.getInstance();
+        Calendar next = (Calendar) now.clone();
+        next.set(Calendar.HOUR_OF_DAY, DAILY_HOUR);
+        next.set(Calendar.MINUTE, DAILY_MINUTE);
+        next.set(Calendar.SECOND, 0);
+        next.set(Calendar.MILLISECOND, 0);
+        if (!next.after(now)) {
+            next.add(Calendar.DAY_OF_YEAR, 1);
+        }
+        return next;
+    }
+
+    static String nextLabel() {
+        Calendar now = Calendar.getInstance();
+        Calendar next = nextFireTime();
+        boolean sameDay = now.get(Calendar.YEAR) == next.get(Calendar.YEAR)
+                && now.get(Calendar.DAY_OF_YEAR) == next.get(Calendar.DAY_OF_YEAR);
+        return sameDay ? "Today, 9:00 PM" : "Tomorrow, 9:00 PM";
     }
 
     static void cancel(Context context) {

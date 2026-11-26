@@ -37,10 +37,13 @@ function handleFileRestore(e) {
           loans: parsed.loans || [],
           splits: parsed.splits || [],
           friends: parsed.friends || [],
+          reminders: Array.isArray(parsed.reminders) ? parsed.reminders.slice() : [],
           settings: Object.assign({
             currency: 'Rs.',
             budget: 35000,
             haptics: true,
+            biometricLock: true,
+            dailySpendReminder: false,
             theme: 'light'
           }, parsed.settings || {}),
           activeFilter: 'all',
@@ -53,6 +56,10 @@ function handleFileRestore(e) {
         };
         clearUndoHistory();
         saveState();
+        if (window.AndroidBridge && window.AndroidBridge.setDailySpendReminderEnabled) {
+          window.AndroidBridge.setDailySpendReminderEnabled(state.settings.dailySpendReminder);
+        }
+        nativeSyncReminders();
         document.querySelectorAll('#typeFilterRow .pill-chip').forEach(c => {
           c.classList.toggle('active', c.dataset.filter === 'all');
         });

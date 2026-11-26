@@ -63,6 +63,7 @@ let state = {
   loans: [],
   splits: [],
   friends: [],
+  reminders: [],
   settings: {
     currency: 'Rs.',
     budget: 35000,
@@ -102,6 +103,7 @@ function loadState() {
       state.loans = parsed.loans || [];
       state.splits = parsed.splits || [];
       state.friends = parsed.friends || [];
+      state.reminders = Array.isArray(parsed.reminders) ? parsed.reminders.slice() : [];
       state.settings = Object.assign({
         currency: 'Rs.',
         budget: 35000,

@@ -36,6 +36,11 @@ Coverage includes:
   settings changes, native lock/resume hooks and touch session refresh.
 - Theme, navigation, hardware back priority, search, settings/presets, modal/backdrop bindings,
   monthly budget display and exactly one listener/render/vibration per filter click.
+- Daily spend reminder toggle persistence ordering, restore resync, blocked/next-delivery status
+  display, notification settings fallback and test notification bridge calls.
+- Custom reminder validation, save/toggle/edit/test/delete persistence and native sync ordering,
+  backup/restore round-trip, startup resync, repeat labels and month-end clamping, and Android back
+  dismissal for reminder dialogs.
 - Ordered local scripts, local script/style/image and CSS `url()` existence, retained globals,
   and compilation/global function resolution for static and representative rendered handlers.
 
@@ -69,10 +74,7 @@ normally, so a missing DOM ID or cross-script global fails a behavioral test.
    not a security audit; several transaction/category fields also enter HTML unescaped.
 2. `openBudgetDialog` uses `state.settings.budget || 35000`, so saving zero hides the
    budget display correctly but reopening the dialog shows `35000` instead of zero.
-3. Restoring a legacy `{ "transactions": [] }` backup leaves `settings.biometricLock`
-   undefined, whereas `loadState` explicitly defaults it to true. Existing `!== false`
-   checks treat it as enabled, but the saved settings shape is inconsistent.
-4. CSV export doubles quotes in notes only. Custom bank names/currencies/categories
+3. CSV export doubles quotes in notes only. Custom bank names/currencies/categories
    containing quotes are not escaped consistently. Import hardening and CSV formula
    injection defenses are outside the behavior-preserving extraction tests.
 

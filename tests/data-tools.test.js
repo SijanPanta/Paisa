@@ -32,6 +32,10 @@ test('JSON backup and restore round-trip transactions, custom banks and settings
   app.state.settings.currency = '$';
   app.state.settings.biometricLock = false;
   app.state.settings.theme = 'dark';
+  app.state.reminders.push({
+    id: 'r1', title: 'Rent', amount: 4000, note: 'Monthly', date: '2026-12-20',
+    time: '09:00', repeat: 'monthly', enabled: true, createdAt: 1
+  });
   app.state.activeFilter = 'income';
   app.state.searchQuery = 'stale';
   app.state.editingTxId = 'restored';
@@ -41,11 +45,15 @@ test('JSON backup and restore round-trip transactions, custom banks and settings
   const backup = JSON.parse(files[0][2]);
   assert.equal(backup.transactions[0].id, 'restored');
   assert.equal(backup.bankAccounts[0].id, 'Nabil');
+  assert.equal(backup.reminders[0].title, 'Rent');
 
-  const restored = createApp();
+  const syncCalls = [];
+  const restored = createApp({ bridge: { syncReminders: () => syncCalls.push('sync') } });
   restored.restore(files[0][2]);
   assert.equal(restored.state.transactions[0].amount, 50);
   assert.equal(restored.state.bankAccounts[0].name, 'Nabil');
+  assert.equal(restored.state.reminders[0].title, 'Rent');
+  assert.deepEqual(syncCalls, ['sync']);
   assert.equal(restored.state.settings.biometricLock, false);
   assert.equal(restored.document.body.dataset.theme, 'dark');
   assert.equal(restored.state.activeFilter, 'all');
@@ -65,6 +73,7 @@ test('restore accepts legacy backups, rejects malformed structures and cancelled
   assert.equal(app.state.settings.currency, 'Rs.');
   assert.equal(app.state.settings.budget, 35000);
   assert.equal(app.state.settings.haptics, true);
+  assert.equal(app.state.reminders.length, 0);
   app.state.transactions.push({ id: 'keep' });
   for (const [content, message] of [
     ['{"transactions":{}}', 'Invalid backup file'],
