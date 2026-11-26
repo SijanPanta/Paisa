@@ -120,11 +120,7 @@ public class DailySpendReceiver extends BroadcastReceiver {
 
             String amount = formatCurrency(currency, total);
             String title = "Today's spending";
-            if (total > 2000) {
-                title = "Slow down, champ";
-            } else if (total < 100) {
-                title = "You poor bastard";
-            }
+            if (total > 2000) title = "Slow down, champ";
             String text = count == 0
                     ? "No spending recorded today."
                     : "You spent " + amount + " today across " + count + " transaction" + (count == 1 ? "" : "s") + ".";
@@ -181,6 +177,16 @@ public class DailySpendReceiver extends BroadcastReceiver {
     static Calendar parseDate(String raw) {
         if (raw == null || raw.isEmpty()) return null;
         try {
+            if (raw.length() == 10) {
+                java.text.SimpleDateFormat dayOnly = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                dayOnly.setLenient(false);
+                dayOnly.setTimeZone(java.util.TimeZone.getDefault());
+                java.util.Date parsed = dayOnly.parse(raw);
+                if (parsed == null) return null;
+                Calendar c = Calendar.getInstance();
+                c.setTime(parsed);
+                return c;
+            }
             java.text.SimpleDateFormat sdf;
             if (raw.length() >= 24 && raw.charAt(23) == 'Z') {
                 sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);

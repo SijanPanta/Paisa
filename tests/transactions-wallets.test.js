@@ -10,6 +10,16 @@ function fill(app, values = {}) {
   }
 }
 
+test('new transactions default to the local calendar date, not the UTC date', () => {
+  const app = createApp();
+  app.call('openAddModal');
+  assert.equal(app.element('txDateInput').value, app.call('localDateString'));
+  app.element('txDateInput').value = '';
+  app.element('txAmountInput').value = '50';
+  app.call('saveTransaction');
+  assert.equal(app.state.transactions[0].date, app.call('localDateString'));
+});
+
 for (const type of ['expense', 'income', 'transfer']) {
   test(`${type}: add, view, edit and confirmed delete persist the same transaction identity`, () => {
     const app = createApp();

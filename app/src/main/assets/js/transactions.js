@@ -71,7 +71,7 @@ function openAddModal(type = 'expense', initialAccount = null) {
   document.getElementById('sheetTitle').textContent = 'New Transaction';
   document.getElementById('txAmountInput').value = '';
   document.getElementById('txNoteInput').value = '';
-  document.getElementById('txDateInput').value = new Date().toISOString().split('T')[0];
+  document.getElementById('txDateInput').value = localDateString();
 
   const defaultTo = (initialAccount === 'eSewa') ? 'Khalti' : 'eSewa';
   renderAccountSelects(initialAccount || 'Cash', defaultTo);
@@ -185,7 +185,7 @@ function saveTransaction() {
   }
 
   const note = document.getElementById('txNoteInput').value.trim();
-  const date = document.getElementById('txDateInput').value || new Date().toISOString().split('T')[0];
+  const date = document.getElementById('txDateInput').value || localDateString();
   const account = document.getElementById('txAccountSelect').value;
   const type = state.selectedType;
 

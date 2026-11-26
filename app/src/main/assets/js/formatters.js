@@ -9,7 +9,10 @@ function formatCurrency(amount) {
 }
 
 function formatDateHeader(dateStr) {
-  const d = new Date(dateStr);
+  const parts = reminderDateParts({ date: String(dateStr || '').slice(0, 10) });
+  if (!parts) return String(dateStr || '');
+  const [year, month, day] = parts;
+  const d = new Date(year, month - 1, day);
   const today = new Date();
   const yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);

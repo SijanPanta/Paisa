@@ -239,7 +239,7 @@ function openLoanAdjustDialog(kind, loanId) {
   document.getElementById('loanAdjustConfirmBtn').textContent = isAdd ? 'Add money' : 'Reduce money';
   document.getElementById('loanAdjustAmountInput').value = '';
   document.getElementById('loanAdjustNoteInput').value = '';
-  document.getElementById('loanAdjustDateInput').value = new Date().toISOString().split('T')[0];
+  document.getElementById('loanAdjustDateInput').value = localDateString();
   document.getElementById('loanAdjustDialog').classList.add('show');
 }
 
@@ -271,7 +271,7 @@ function confirmLoanAdjust() {
     id: 'adjust_' + now.getTime() + '_' + Math.random().toString(36).substr(2, 5),
     delta,
     note: document.getElementById('loanAdjustNoteInput').value.trim(),
-    date: document.getElementById('loanAdjustDateInput').value || new Date().toISOString().split('T')[0],
+    date: document.getElementById('loanAdjustDateInput').value || localDateString(),
     time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }]);
   loan.amount = outstanding + delta;
@@ -370,7 +370,7 @@ function openLoanModal(direction = 'pay', loanId = null) {
   const matchedFriend = loan ? findFriendByName(loan.person) : null;
   renderLoanFriendChips(loan ? loan.friendId || (matchedFriend && matchedFriend.id) : null);
   document.getElementById('loanNoteInput').value = loan ? (loan.note || '') : '';
-  document.getElementById('loanDateInput').value = loan ? loan.date : new Date().toISOString().split('T')[0];
+  document.getElementById('loanDateInput').value = loan ? loan.date : localDateString();
   renderLoanAccountSelect(loan ? loan.account : 'Cash');
   document.getElementById('deleteLoanBtn').style.display = loan ? 'block' : 'none';
   document.getElementById('loanAddMoneyBtn').style.display = loan ? 'flex' : 'none';
@@ -406,7 +406,7 @@ function saveLoan() {
     return;
   }
 
-  const date = document.getElementById('loanDateInput').value || new Date().toISOString().split('T')[0];
+  const date = document.getElementById('loanDateInput').value || localDateString();
   const account = document.getElementById('loanAccountSelect').value;
   const note = document.getElementById('loanNoteInput').value.trim();
   const matchedFriend = findFriendByName(person);
@@ -568,7 +568,7 @@ function confirmApproveLoan() {
     type: direction === 'pay' ? 'expense' : 'income',
     amount: Number(loan.amount) || 0,
     note: `${config.label} · ${loan.person || 'Friend'}`,
-    date: loan.date || new Date().toISOString().split('T')[0],
+    date: loan.date || localDateString(),
     time: loan.time || now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     account: loan.account || 'Cash',
     toAccount: null,

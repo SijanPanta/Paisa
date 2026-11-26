@@ -198,7 +198,7 @@ function initializeSplitFields() {
   splitSelectedFriends = new Set((state.friends || []).map(friend => friend.id));
   document.getElementById('splitAmountInput').value = '';
   document.getElementById('splitNoteInput').value = '';
-  document.getElementById('splitDateInput').value = new Date().toISOString().split('T')[0];
+  document.getElementById('splitDateInput').value = localDateString();
   document.getElementById('splitCurrencySymbol').textContent = splitCurrency();
   renderSplitAccountSelect('Cash');
   renderFriendChips(splitSelectedFriends);
@@ -251,7 +251,7 @@ function saveSplit() {
 
   const now = new Date();
   const stamp = now.getTime();
-  const date = document.getElementById('splitDateInput').value || new Date().toISOString().split('T')[0];
+  const date = document.getElementById('splitDateInput').value || localDateString();
   const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const account = document.getElementById('splitAccountSelect').value || 'Cash';
   const note = document.getElementById('splitNoteInput').value.trim();

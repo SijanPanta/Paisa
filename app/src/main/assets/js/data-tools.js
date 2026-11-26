@@ -10,13 +10,13 @@ function exportCsv() {
     csv += `"${t.id}","${t.date}","${t.time || ''}","${t.type}",${t.amount},"${state.settings.currency}","${t.categoryName || ''}","${t.account || ''}","${t.toAccount || ''}","${(t.note || '').replace(/"/g, '""')}"\n`;
   });
 
-  nativeSaveFile(`Paisa-Transactions-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv', csv);
+  nativeSaveFile(`Paisa-Transactions-${localDateString()}.csv`, 'text/csv', csv);
 }
 
 function backupJson() {
   nativeVibrate(20);
   const json = JSON.stringify(state, null, 2);
-  nativeSaveFile(`Paisa-Backup-${new Date().toISOString().split('T')[0]}.json`, 'application/json', json);
+  nativeSaveFile(`Paisa-Backup-${localDateString()}.json`, 'application/json', json);
 }
 
 function restoreJson() {
