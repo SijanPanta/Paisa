@@ -4,7 +4,6 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 
 import java.util.Calendar;
 
@@ -18,18 +17,12 @@ public final class DailySpendScheduler {
     static void schedule(Context context) {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
-        PendingIntent pi = pendingIntent(context, PendingIntent.FLAG_UPDATE_CURRENT | immutableFlag());
+        PendingIntent pi = pendingIntent(context, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Calendar next = nextFireTime();
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.getTimeInMillis(), pi);
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                am.setExact(AlarmManager.RTC_WAKEUP, next.getTimeInMillis(), pi);
-            } else {
-                am.set(AlarmManager.RTC_WAKEUP, next.getTimeInMillis(), pi);
-            }
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.getTimeInMillis(), pi);
         } catch (Exception ignored) {
             try {
                 am.set(AlarmManager.RTC_WAKEUP, next.getTimeInMillis(), pi);
@@ -62,7 +55,7 @@ public final class DailySpendScheduler {
     static void cancel(Context context) {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
-        PendingIntent pi = pendingIntent(context, PendingIntent.FLAG_UPDATE_CURRENT | immutableFlag());
+        PendingIntent pi = pendingIntent(context, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         am.cancel(pi);
         pi.cancel();
     }
@@ -71,12 +64,5 @@ public final class DailySpendScheduler {
         Intent intent = new Intent(context, DailySpendReceiver.class);
         intent.setAction(DailySpendReceiver.ACTION_DAILY_SPEND);
         return PendingIntent.getBroadcast(context, 2001, intent, flags);
-    }
-
-    private static int immutableFlag() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return PendingIntent.FLAG_IMMUTABLE;
-        }
-        return 0;
     }
 }

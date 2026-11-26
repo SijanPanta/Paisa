@@ -351,6 +351,14 @@ function bindReminderEvents() {
     closeReminderDialog();
   });
   document.getElementById('saveReminderBtn').addEventListener('click', saveReminder);
+  document.getElementById('reminderEnabledInput').addEventListener('change', () => {
+    if (pendingReminderId) toggleReminder(pendingReminderId);
+  });
+  document.getElementById('deleteReminderBtn').addEventListener('click', () => {
+    const id = pendingReminderId;
+    closeReminderDialog();
+    promptDeleteReminder(id);
+  });
   document.querySelectorAll('#reminderRepeatPresets .preset-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       nativeVibrate(15);

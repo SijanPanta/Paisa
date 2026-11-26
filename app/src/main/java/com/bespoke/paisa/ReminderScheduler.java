@@ -5,7 +5,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -136,15 +135,9 @@ public final class ReminderScheduler {
     static void schedule(Context context, String id, Calendar at) {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
-        PendingIntent pi = pendingIntent(context, id, PendingIntent.FLAG_UPDATE_CURRENT | immutableFlag());
+        PendingIntent pi = pendingIntent(context, id, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.getTimeInMillis(), pi);
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                am.setExact(AlarmManager.RTC_WAKEUP, at.getTimeInMillis(), pi);
-            } else {
-                am.set(AlarmManager.RTC_WAKEUP, at.getTimeInMillis(), pi);
-            }
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.getTimeInMillis(), pi);
         } catch (Exception ignored) {
             try {
                 am.set(AlarmManager.RTC_WAKEUP, at.getTimeInMillis(), pi);
@@ -154,7 +147,7 @@ public final class ReminderScheduler {
     }
 
     static int notificationId(String id) {
-        return 3000 + (id.hashCode() & 0x7fffffff) % 100000;
+        return requestCode(id);
     }
 
     private static void cancelAll(Context context) {
@@ -172,7 +165,7 @@ public final class ReminderScheduler {
     private static void cancel(Context context, String id) {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
-        PendingIntent pi = pendingIntent(context, id, PendingIntent.FLAG_UPDATE_CURRENT | immutableFlag());
+        PendingIntent pi = pendingIntent(context, id, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         am.cancel(pi);
         pi.cancel();
     }
@@ -188,15 +181,11 @@ public final class ReminderScheduler {
         return 3000 + (id.hashCode() & 0x7fffffff) % 100000;
     }
 
-    private static int immutableFlag() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0;
-    }
-
     private static SharedPreferences prefs(Context context) {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     }
 
-    private static JSONObject readRoot(Context context) {
+    static JSONObject readRoot(Context context) {
         String raw = prefs(context).getString(BACKUP_KEY, null);
         if (raw == null) return new JSONObject();
         try {
@@ -206,7 +195,7 @@ public final class ReminderScheduler {
         }
     }
 
-    private static void writeRoot(Context context, JSONObject root) {
+    static void writeRoot(Context context, JSONObject root) {
         prefs(context).edit().putString(BACKUP_KEY, root.toString()).apply();
     }
 }

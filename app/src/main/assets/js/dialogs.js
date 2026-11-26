@@ -137,7 +137,7 @@ function confirmDeleteBank() {
 
 let pendingReminderId = null;
 let pendingDeleteReminderId = null;
-let tempReminderRepeat = 'monthly';
+let tempReminderRepeat = 'none';
 
 function openReminderDialog(id = null) {
   nativeVibrate(20);
@@ -153,6 +153,9 @@ function openReminderDialog(id = null) {
   document.querySelectorAll('#reminderRepeatPresets .preset-chip').forEach(chip => {
     chip.classList.toggle('active', chip.dataset.repeat === tempReminderRepeat);
   });
+  document.getElementById('reminderEnabledInput').checked = reminder ? reminder.enabled !== false : true;
+  document.getElementById('reminderEnabledRow').style.display = reminder ? 'flex' : 'none';
+  document.getElementById('deleteReminderBtn').style.display = reminder ? '' : 'none';
   document.getElementById('reminderDialog').classList.add('show');
   setTimeout(() => document.getElementById('reminderTitleInput').focus(), 80);
 }
@@ -193,7 +196,7 @@ function saveReminder() {
   const reminder = {
     id: existing ? existing.id : `r_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
     title, amount, note, date, time,
-    repeat: tempReminderRepeat || 'monthly',
+    repeat: tempReminderRepeat,
     enabled: existing ? existing.enabled !== false : true,
     createdAt: existing ? existing.createdAt || Date.now() : Date.now()
   };
@@ -238,6 +241,7 @@ function confirmDeleteReminder() {
 function toggleReminder(id) {
   const reminder = (state.reminders || []).find(r => r.id === id);
   if (!reminder) return;
+  nativeVibrate(15);
   reminder.enabled = reminder.enabled === false;
   saveState();
   nativeSyncReminders();
@@ -250,7 +254,6 @@ function handleReminderAction(event) {
   const id = button.dataset.reminderId;
   const action = button.dataset.action;
   if (!id || !action) return;
-  nativeVibrate(15);
   if (action === 'toggle') toggleReminder(id);
   else if (action === 'edit') openReminderDialog(id);
   else if (action === 'delete') promptDeleteReminder(id);

@@ -45,29 +45,20 @@ public class DailySpendReceiver extends BroadcastReceiver {
     }
 
     static boolean isReminderEnabled(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        try {
-            String raw = prefs.getString(BACKUP_KEY, null);
-            if (raw == null) return false;
-            JSONObject settings = new JSONObject(raw).optJSONObject("settings");
-            return settings != null && settings.optBoolean("dailySpendReminder", false);
-        } catch (Exception ignored) {
-            return false;
-        }
+        JSONObject settings = ReminderScheduler.readRoot(context).optJSONObject("settings");
+        return settings != null && settings.optBoolean("dailySpendReminder", false);
     }
 
     static void setReminderEnabled(Context context, boolean enabled) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        JSONObject root = ReminderScheduler.readRoot(context);
         try {
-            String raw = prefs.getString(BACKUP_KEY, null);
-            JSONObject root = raw == null ? new JSONObject() : new JSONObject(raw);
             JSONObject settings = root.optJSONObject("settings");
             if (settings == null) {
                 settings = new JSONObject();
                 root.put("settings", settings);
             }
             settings.put("dailySpendReminder", enabled);
-            prefs.edit().putString(BACKUP_KEY, root.toString()).apply();
+            ReminderScheduler.writeRoot(context, root);
         } catch (Exception ignored) {
         }
     }
@@ -77,9 +68,11 @@ public class DailySpendReceiver extends BroadcastReceiver {
         if (reminder == null || !reminder.optBoolean("enabled", true)) return;
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
+        JSONObject settings = ReminderScheduler.readRoot(context).optJSONObject("settings");
+        String currency = settings != null ? settings.optString("currency", "Rs.") : "Rs.";
         ensureChannel(nm);
         nm.notify(ReminderScheduler.notificationId(id), notificationBuilder(context,
-                reminder.optString("title", "Reminder"), reminderText(context, reminder)).build());
+                reminder.optString("title", "Reminder"), reminderText(reminder, currency)).build());
 
         Calendar next = ReminderScheduler.nextOccurrence(reminder, Calendar.getInstance());
         if (next != null) {
@@ -89,26 +82,13 @@ public class DailySpendReceiver extends BroadcastReceiver {
         }
     }
 
-    private static String reminderText(Context context, JSONObject reminder) {
+    private static String reminderText(JSONObject reminder, String currency) {
         double amount = reminder.optDouble("amount", -1);
-        String amountText = amount > 0 ? formatCurrency(currency(context), amount) : "";
+        String amountText = amount > 0 ? formatCurrency(currency, amount) : "";
         String note = reminder.optString("note", "").trim();
         if (!amountText.isEmpty() && !note.isEmpty()) return amountText + " · " + note;
         if (!amountText.isEmpty()) return amountText + " is due.";
         return note.isEmpty() ? "It's time." : note;
-    }
-
-    private static String currency(Context context) {
-        try {
-            String raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                    .getString(BACKUP_KEY, null);
-            if (raw != null) {
-                JSONObject settings = new JSONObject(raw).optJSONObject("settings");
-                if (settings != null) return settings.optString("currency", "Rs.");
-            }
-        } catch (Exception ignored) {
-        }
-        return "Rs.";
     }
 
     static void showSummary(Context context) {
@@ -160,8 +140,7 @@ public class DailySpendReceiver extends BroadcastReceiver {
     private static Notification.Builder notificationBuilder(Context context, String title, String text) {
         Intent openIntent = new Intent(context, MainActivity.class);
         openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) flags |= PendingIntent.FLAG_IMMUTABLE;
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 1001, openIntent, flags);
 
         Notification.Builder builder;

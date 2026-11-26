@@ -97,11 +97,11 @@ test('browser fallbacks vibrate, alert, share or copy without AndroidBridge', as
 test('native reminder helper calls the sync bridge and degrades in browser preview', () => {
   const calls = [];
   const app = createApp({ bridge: { syncReminders: () => calls.push('sync') } });
-  assert.equal(app.call('nativeSyncReminders'), true);
+  app.call('nativeSyncReminders');
   assert.deepEqual(calls, ['sync']);
 
   const preview = createApp();
-  assert.equal(preview.call('nativeSyncReminders'), false);
+  preview.call('nativeSyncReminders');
 });
 
 test('formatters retain currency grouping, relative dates and HTML escaping', () => {
@@ -123,6 +123,7 @@ test('reminder helpers label schedules, clamp monthly dates and reject past one-
   const next = app.call('nextReminderDate', { date: '2026-01-31', time: '09:00', repeat: 'monthly' }, now);
   assert.equal(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`, '2026-02-28');
   assert.equal(app.call('nextReminderDate', { date: '2026-01-01', time: '09:00', repeat: 'none' }, now), null);
+  assert.equal(app.call('nextReminderDate', { date: '', time: '09:00', repeat: 'monthly' }, now), null);
   assert.equal(app.call('reminderTimeLabel', '21:00'), '9:00 PM');
   assert.equal(app.call('reminderScheduleLabel', { date: '2026-12-20', time: '21:00', repeat: 'monthly' }), 'Monthly on 20 · 9:00 PM');
   assert.equal(app.call('reminderScheduleLabel', { date: '2026-12-20', time: '09:00', repeat: 'weekly' }), 'Every Sun · 9:00 AM');

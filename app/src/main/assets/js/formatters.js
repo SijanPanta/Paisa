@@ -29,11 +29,10 @@ function localDateString(date = new Date()) {
 }
 
 function reminderDateParts(reminder) {
-  const parts = String((reminder && reminder.date) || localDateString()).split('-').map(Number);
-  const today = new Date();
-  const year = parts[0] || today.getFullYear();
-  const month = parts[1] || (today.getMonth() + 1);
-  const day = parts[2] || today.getDate();
+  const parts = String((reminder && reminder.date) || '').split('-').map(Number);
+  if (parts.length !== 3 || parts.some(part => !Number.isInteger(part))) return null;
+  const [year, month, day] = parts;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
   return [year, month, day];
 }
 
@@ -43,9 +42,7 @@ function reminderTimeParts(reminder) {
 }
 
 function reminderTimeLabel(time) {
-  const parts = String(time || '09:00').split(':').map(Number);
-  const hour = parts[0] || 0;
-  const minute = parts[1] || 0;
+  const [hour, minute] = reminderTimeParts({ time });
   return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
 }
 
@@ -56,7 +53,9 @@ function daysInMonth(year, month) {
 function reminderScheduleLabel(reminder) {
   const time = reminderTimeLabel(reminder.time);
   const repeat = reminder.repeat || 'none';
-  const [year, month, day] = reminderDateParts(reminder);
+  const parts = reminderDateParts(reminder);
+  if (!parts) return `Invalid schedule · ${time}`;
+  const [year, month, day] = parts;
   if (repeat === 'daily') return `Every day · ${time}`;
   if (repeat === 'weekly') {
     const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(year, month - 1, day).getDay()];
@@ -68,7 +67,9 @@ function reminderScheduleLabel(reminder) {
 }
 
 function nextReminderDate(reminder, now = new Date()) {
-  const [year, month, day] = reminderDateParts(reminder);
+  const parts = reminderDateParts(reminder);
+  if (!parts) return null;
+  const [year, month, day] = parts;
   const [hour, minute] = reminderTimeParts(reminder);
   const result = new Date(year, month - 1, day, hour, minute, 0, 0);
   const repeat = reminder.repeat || 'none';

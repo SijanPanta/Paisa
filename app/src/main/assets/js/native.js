@@ -50,9 +50,7 @@ function nativeNextReminderLabel() {
 function nativeSyncReminders() {
   if (window.AndroidBridge && window.AndroidBridge.syncReminders) {
     window.AndroidBridge.syncReminders();
-    return true;
   }
-  return false;
 }
 
 function nativeOpenNotificationSettings() {

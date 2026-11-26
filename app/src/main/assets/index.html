@@ -902,7 +902,12 @@
         <div class="preset-chip" data-repeat="weekly">Weekly</div>
         <div class="preset-chip active" data-repeat="monthly">Monthly</div>
       </div>
+      <div class="reminder-switch-row" id="reminderEnabledRow" style="display:none;">
+        <span>Reminder on</span>
+        <input type="checkbox" id="reminderEnabledInput" class="reminder-switch" checked aria-label="Reminder enabled" />
+      </div>
       <div class="dialog-actions">
+        <button class="dialog-btn danger" id="deleteReminderBtn" style="display:none;">Delete</button>
         <button class="dialog-btn tonal" id="cancelReminderBtn">Cancel</button>
         <button class="dialog-btn primary" id="saveReminderBtn">Save</button>
       </div>

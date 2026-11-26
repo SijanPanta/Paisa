@@ -328,6 +328,8 @@ test('custom reminders are validated, saved, synced and listed with repeat label
   calls.length = 0;
   app.element('addReminderBtn').click();
   assert.equal(app.element('reminderDialog').classList.contains('show'), true);
+  assert.equal(app.element('reminderEnabledRow').style.display, 'none');
+  assert.equal(app.element('deleteReminderBtn').style.display, 'none');
 
   app.element('saveReminderBtn').click();
   assert.equal(app.state.reminders.length, 0);
@@ -351,7 +353,9 @@ test('custom reminders are validated, saved, synced and listed with repeat label
   const list = app.element('customRemindersList').innerHTML;
   assert.match(list, /Rent/);
   assert.match(list, /Rs\. 4,000 · Monthly on 20/);
-  assert.match(list, /data-action="toggle"/);
+  assert.match(list, /data-action="edit" data-reminder-id=/);
+  assert.match(list, />On</);
+  assert.doesNotMatch(list, /data-action="toggle"|data-action="delete"/);
 });
 
 test('custom reminder actions toggle, edit, delete and close on Android back', () => {
@@ -369,26 +373,35 @@ test('custom reminder actions toggle, edit, delete and close on Android back', (
     time: '09:00', repeat: 'monthly', enabled: true, createdAt: 1
   });
   app.call('renderSettings');
-  const list = app.element('customRemindersList');
+  const row = () => app.element('customRemindersList').querySelector('[data-reminder-id="r1"]');
 
-  list.querySelector('[data-action="toggle"][data-reminder-id="r1"]').click();
-  assert.equal(app.state.reminders[0].enabled, false);
-  assert.deepEqual(calls, ['sync']);
-  assert.equal(app.element('customRemindersList').querySelector('[data-action="test"]'), null);
-
-  app.element('customRemindersList').querySelector('[data-action="edit"]').click();
+  row().click();
   assert.equal(app.element('reminderDialog').classList.contains('show'), true);
   assert.equal(app.element('reminderTitleInput').value, 'Water');
+  assert.equal(app.element('reminderEnabledInput').checked, true);
+  assert.equal(app.element('reminderEnabledRow').style.display, 'flex');
+  assert.equal(app.element('deleteReminderBtn').style.display, '');
+
+  app.element('reminderEnabledInput').checked = false;
+  app.element('reminderEnabledInput').dispatchEvent({ type: 'change' });
+  assert.equal(app.state.reminders[0].enabled, false);
+  assert.deepEqual(calls, ['sync']);
+
   app.element('reminderTitleInput').value = 'Water bill';
   app.element('saveReminderBtn').click();
   assert.equal(app.state.reminders[0].title, 'Water bill');
   assert.equal(app.state.reminders[0].enabled, false);
 
-  app.element('customRemindersList').querySelector('[data-action="delete"]').click();
+  row().click();
+  assert.equal(app.element('reminderTitleInput').value, 'Water bill');
+  app.element('deleteReminderBtn').click();
+  assert.equal(app.element('reminderDialog').classList.contains('show'), false);
   assert.equal(app.element('deleteReminderDialog').classList.contains('show'), true);
   app.call('handleAndroidBack');
   assert.equal(app.element('deleteReminderDialog').classList.contains('show'), false);
-  app.element('customRemindersList').querySelector('[data-action="delete"]').click();
+
+  row().click();
+  app.element('deleteReminderBtn').click();
   app.element('confirmDeleteReminderBtn').click();
   assert.equal(app.state.reminders.length, 0);
   assert.equal(calls.at(-1), 'sync');

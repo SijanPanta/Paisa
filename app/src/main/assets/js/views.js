@@ -465,16 +465,15 @@ function renderReminders() {
       : reminderScheduleLabel(reminder);
     const enabled = reminder.enabled !== false;
     const next = nextReminderLabel(reminder);
-    return `<div class="reminder-row">
-      <div class="reminder-info"><h6>${title}</h6><p>${escapeHtml(detail)} · ${escapeHtml(next)}</p></div>
-      <div class="reminder-actions">
-        <button class="reminder-action ${enabled ? 'active' : ''}" data-action="toggle" data-reminder-id="${id}">${enabled ? 'On' : 'Off'}</button>
-        <button class="reminder-action" data-action="edit" data-reminder-id="${id}">Edit</button>
-        <button class="reminder-action" data-action="delete" data-reminder-id="${id}">Del</button>
-      </div>
-    </div>`;
+    return `<button type="button" class="reminder-row" data-action="edit" data-reminder-id="${id}" aria-label="Edit ${title}">
+      <span class="reminder-info"><strong class="reminder-title">${title}</strong><span class="reminder-detail">${escapeHtml(detail)} · ${escapeHtml(next)}</span></span>
+      <span class="reminder-row-end">
+        <span class="reminder-status ${enabled ? 'on' : ''}">${enabled ? 'On' : 'Off'}</span>
+        <span class="reminder-chevron" aria-hidden="true">›</span>
+      </span>
+    </button>`;
   }).join('');
-  list.querySelectorAll('[data-action]').forEach(button => {
-    button.addEventListener('click', handleReminderAction);
+  list.querySelectorAll('[data-reminder-id]').forEach(row => {
+    row.addEventListener('click', () => handleReminderAction({ target: row }));
   });
 }

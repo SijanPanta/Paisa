@@ -39,8 +39,9 @@ Coverage includes:
 - Daily spend reminder toggle persistence ordering, restore resync, blocked/next-delivery status
   display and notification settings fallback.
 - Custom reminder validation, save/toggle/edit/delete persistence and native sync ordering,
-  backup/restore round-trip, startup resync, repeat labels and month-end clamping, and Android back
-  dismissal for reminder dialogs.
+  tap-to-edit rows with the on/off switch and delete action inside the editor, backup/restore
+  round-trip, startup resync, repeat labels and month-end clamping, and Android back dismissal for
+  reminder dialogs.
 - Ordered local scripts, local script/style/image and CSS `url()` existence, retained globals,
   and compilation/global function resolution for static and representative rendered handlers.
 
