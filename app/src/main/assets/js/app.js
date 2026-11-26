@@ -342,11 +342,6 @@ function bindSettingsEvents() {
     nativeVibrate(15);
     nativeOpenNotificationSettings();
   });
-
-  document.getElementById('sendTestNotificationBtn').addEventListener('click', () => {
-    nativeVibrate(20);
-    if (nativeSendTestNotification()) nativeToast('Test notification sent');
-  });
 }
 
 function bindReminderEvents() {

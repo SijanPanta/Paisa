@@ -469,7 +469,6 @@ function renderReminders() {
       <div class="reminder-info"><h6>${title}</h6><p>${escapeHtml(detail)} · ${escapeHtml(next)}</p></div>
       <div class="reminder-actions">
         <button class="reminder-action ${enabled ? 'active' : ''}" data-action="toggle" data-reminder-id="${id}">${enabled ? 'On' : 'Off'}</button>
-        <button class="reminder-action" data-action="test" data-reminder-id="${id}">Test</button>
         <button class="reminder-action" data-action="edit" data-reminder-id="${id}">Edit</button>
         <button class="reminder-action" data-action="delete" data-reminder-id="${id}">Del</button>
       </div>

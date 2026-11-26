@@ -190,16 +190,6 @@ public final class WebAppInterface {
     }
 
     @JavascriptInterface
-    public void sendTestNotification() {
-        DailySpendReceiver.sendTestNotification(activity);
-    }
-
-    @JavascriptInterface
-    public void sendTestReminder(String id) {
-        DailySpendReceiver.sendTestReminder(activity, id);
-    }
-
-    @JavascriptInterface
     public void openNotificationSettings() {
         activity.runOnUiThread(() -> {
             Intent intent;

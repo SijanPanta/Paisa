@@ -94,20 +94,14 @@ test('browser fallbacks vibrate, alert, share or copy without AndroidBridge', as
   assert.deepEqual(shares, [{ title: 'title', text: 'text' }]);
 });
 
-test('native reminder helpers call sync and per-reminder test bridge methods', () => {
+test('native reminder helper calls the sync bridge and degrades in browser preview', () => {
   const calls = [];
-  const app = createApp({ bridge: {
-    syncReminders: () => calls.push(['sync']),
-    sendTestReminder: id => calls.push(['test', id])
-  } });
+  const app = createApp({ bridge: { syncReminders: () => calls.push('sync') } });
   assert.equal(app.call('nativeSyncReminders'), true);
-  assert.equal(app.call('nativeSendTestReminder', 'r1'), true);
-  assert.deepEqual(calls, [['sync'], ['test', 'r1']]);
+  assert.deepEqual(calls, ['sync']);
 
   const preview = createApp();
   assert.equal(preview.call('nativeSyncReminders'), false);
-  assert.equal(preview.call('nativeSendTestReminder', 'r1'), false);
-  assert.deepEqual(preview.calls.alerts, ['Test notifications are only available in the Android app']);
 });
 
 test('formatters retain currency grouping, relative dates and HTML escaping', () => {

@@ -245,11 +245,6 @@ function toggleReminder(id) {
   nativeToast(reminder.enabled ? 'Reminder enabled' : 'Reminder disabled');
 }
 
-function sendTestReminder(id) {
-  nativeVibrate(20);
-  if (nativeSendTestReminder(id)) nativeToast('Test reminder sent');
-}
-
 function handleReminderAction(event) {
   const button = event.target;
   const id = button.dataset.reminderId;
@@ -257,7 +252,6 @@ function handleReminderAction(event) {
   if (!id || !action) return;
   nativeVibrate(15);
   if (action === 'toggle') toggleReminder(id);
-  else if (action === 'test') sendTestReminder(id);
   else if (action === 'edit') openReminderDialog(id);
   else if (action === 'delete') promptDeleteReminder(id);
 }

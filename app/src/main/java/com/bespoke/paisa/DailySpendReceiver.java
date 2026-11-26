@@ -72,26 +72,6 @@ public class DailySpendReceiver extends BroadcastReceiver {
         }
     }
 
-    static void sendTestNotification(Context context) {
-        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm == null) return;
-        ensureChannel(nm);
-        Notification.Builder builder = notificationBuilder(context, "Daily spend test",
-                "Your daily spending reminder is working.");
-        nm.notify(2002, builder.build());
-    }
-
-    static void sendTestReminder(Context context, String id) {
-        JSONObject reminder = ReminderScheduler.findReminder(context, id);
-        if (reminder == null) return;
-        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm == null) return;
-        ensureChannel(nm);
-        String title = "Test: " + reminder.optString("title", "Reminder");
-        nm.notify(ReminderScheduler.notificationId(id),
-                notificationBuilder(context, title, reminderText(context, reminder)).build());
-    }
-
     static void showCustom(Context context, String id) {
         JSONObject reminder = ReminderScheduler.findReminder(context, id);
         if (reminder == null || !reminder.optBoolean("enabled", true)) return;
@@ -177,7 +157,7 @@ public class DailySpendReceiver extends BroadcastReceiver {
         }
     }
 
-    static Notification.Builder notificationBuilder(Context context, String title, String text) {
+    private static Notification.Builder notificationBuilder(Context context, String title, String text) {
         Intent openIntent = new Intent(context, MainActivity.class);
         openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;

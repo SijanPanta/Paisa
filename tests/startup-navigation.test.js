@@ -272,7 +272,7 @@ test('restoring a backup resyncs the daily reminder with native scheduling', () 
   assert.equal(saved.settings.biometricLock, true);
 });
 
-test('notification status reflects blocked permission and the test action uses native bridge', () => {
+test('notification status reflects blocked permission and opens notification settings', () => {
   const calls = [];
   let blocked = true;
   let app;
@@ -282,7 +282,6 @@ test('notification status reflects blocked permission and the test action uses n
       canPostNotifications: () => !blocked,
       getNextReminderLabel: () => 'Tomorrow, 9:00 PM',
       setDailySpendReminderEnabled: enabled => calls.push(enabled),
-      sendTestNotification: () => calls.push('test'),
       openNotificationSettings: () => calls.push('settings')
     }
   });
@@ -296,8 +295,7 @@ test('notification status reflects blocked permission and the test action uses n
   blocked = false;
   app.call('renderSettings');
   assert.equal(app.element('settingDailyReminderStatusVal').textContent, 'Next: Tomorrow, 9:00 PM');
-  app.element('sendTestNotificationBtn').click();
-  assert.deepEqual(calls, [true, 'settings', 'test']);
+  assert.deepEqual(calls, [true, 'settings']);
 });
 
 test('startup resyncs custom reminders restored from local state', () => {
@@ -323,8 +321,7 @@ test('custom reminders are validated, saved, synced and listed with repeat label
   const app = createApp({
     bridge: {
       isBiometricSupported: () => false,
-      syncReminders: () => calls.push('sync'),
-      sendTestReminder: id => calls.push(['test', id])
+      syncReminders: () => calls.push('sync')
     }
   });
   app.start();
@@ -357,13 +354,12 @@ test('custom reminders are validated, saved, synced and listed with repeat label
   assert.match(list, /data-action="toggle"/);
 });
 
-test('custom reminder actions toggle, test, edit, delete and close on Android back', () => {
+test('custom reminder actions toggle, edit, delete and close on Android back', () => {
   const calls = [];
   const app = createApp({
     bridge: {
       isBiometricSupported: () => false,
-      syncReminders: () => calls.push('sync'),
-      sendTestReminder: id => calls.push(['test', id])
+      syncReminders: () => calls.push('sync')
     }
   });
   app.start();
@@ -378,9 +374,7 @@ test('custom reminder actions toggle, test, edit, delete and close on Android ba
   list.querySelector('[data-action="toggle"][data-reminder-id="r1"]').click();
   assert.equal(app.state.reminders[0].enabled, false);
   assert.deepEqual(calls, ['sync']);
-
-  app.element('customRemindersList').querySelector('[data-action="test"]').click();
-  assert.deepEqual(calls, ['sync', ['test', 'r1']]);
+  assert.equal(app.element('customRemindersList').querySelector('[data-action="test"]'), null);
 
   app.element('customRemindersList').querySelector('[data-action="edit"]').click();
   assert.equal(app.element('reminderDialog').classList.contains('show'), true);

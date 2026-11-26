@@ -47,29 +47,11 @@ function nativeNextReminderLabel() {
   return window.AndroidBridge.getNextReminderLabel() || '';
 }
 
-function nativeSendTestNotification() {
-  if (window.AndroidBridge && window.AndroidBridge.sendTestNotification) {
-    window.AndroidBridge.sendTestNotification();
-    return true;
-  }
-  nativeToast('Test notifications are only available in the Android app');
-  return false;
-}
-
 function nativeSyncReminders() {
   if (window.AndroidBridge && window.AndroidBridge.syncReminders) {
     window.AndroidBridge.syncReminders();
     return true;
   }
-  return false;
-}
-
-function nativeSendTestReminder(id) {
-  if (window.AndroidBridge && window.AndroidBridge.sendTestReminder) {
-    window.AndroidBridge.sendTestReminder(id);
-    return true;
-  }
-  nativeToast('Test notifications are only available in the Android app');
   return false;
 }
 

@@ -37,8 +37,8 @@ Coverage includes:
 - Theme, navigation, hardware back priority, search, settings/presets, modal/backdrop bindings,
   monthly budget display and exactly one listener/render/vibration per filter click.
 - Daily spend reminder toggle persistence ordering, restore resync, blocked/next-delivery status
-  display, notification settings fallback and test notification bridge calls.
-- Custom reminder validation, save/toggle/edit/test/delete persistence and native sync ordering,
+  display and notification settings fallback.
+- Custom reminder validation, save/toggle/edit/delete persistence and native sync ordering,
   backup/restore round-trip, startup resync, repeat labels and month-end clamping, and Android back
   dismissal for reminder dialogs.
 - Ordered local scripts, local script/style/image and CSS `url()` existence, retained globals,
